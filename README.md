@@ -1,1 +1,1 @@
-GA for Keras
+GeneticAlgorithm implementation for Keras
