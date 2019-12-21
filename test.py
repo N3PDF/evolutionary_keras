@@ -21,9 +21,10 @@ from keras.layers import Dense, Input, Flatten
 
 from GAModel import GAModel
 
+
 batch_size = 128
 num_classes = 10
-epochs = 12
+epochs = 1
 
 # input image dimensions
 img_rows, img_cols = 28, 28
@@ -59,7 +60,6 @@ dense = Dense(64, activation='relu')(dense)
 prediction = Dense(10, activation='softmax')(dense)
 
 model = GAModel(input=inputs, output=prediction)
-import ipdb; ipdb.set_trace()
 model.compile(optimizer='rmsprop',
                 loss='categorical_crossentropy',
                 metrics=['accuracy'])

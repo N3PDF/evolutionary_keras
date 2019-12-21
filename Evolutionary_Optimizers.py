@@ -6,40 +6,22 @@ from keras.models import Model
 from keras.optimizers import Optimizer
 
 
-class GAmodel(Model):
-
-    def compile(self, is_genetic = False, ):
-        if is_genetic:
-            self.is_genetic = True
-            self.optimizer = optimizer
-            self.model = import_model()
-
-
-
-
-    def fit(self):
-        if self.is_not_genetic:
-            super().fit()
-            return
-
-
-        self.optimizer.create_mutants(model = self)
-        self.optimizer.kill_mutants(model = self)
-
-
-
 class GA(Optimizer):
+    pass
 
 
 class NGA(Optimizer):
-        """
-        The Nodal Genetic Algorithm (NGA) is similar to the GA, but this time a number
-        of nodes (defined by the mutation_rate variable) are selected at random and 
-        only the weights and biases corresponding to the selected nodes are mutated by 
-        adding normally distributed values with normal distrubtion given by sigma. 
-        """
 
-    def __init__(self, population_size = 80, sigma_init = 10, mutation_rate = 0.05, **kwargs):
+    """
+    The Nodal Genetic Algorithm (NGA) is similar to the GA, but this time a number
+    of nodes (defined by the mutation_rate variable) are selected at random and 
+    only the weights and biases corresponding to the selected nodes are mutated by 
+    adding normally distributed values with normal distrubtion given by sigma. 
+    """
+
+    is_genetic = True
+
+    def __init__(self, population_size = 80, sigma_init = 10, mutation_rate = 0.05, *args, **kwargs):
         self.population_size = population_size
         self.sigma_init = sigma_init
         self.mutation_rate = mutation_rate
@@ -54,7 +36,7 @@ class NGA(Optimizer):
         return model
 
 
-    def get_shape(self, model)
+    def get_shape(self, model):
         original_weights = []
         for i in range(6):
             original_weights.append(training_model.get_weights()[i])
@@ -128,15 +110,21 @@ class NGA(Optimizer):
         return out
 
 
-    def kill_mutants(self)
+    def kill_mutants(self):
         mutant = []
-        return  
 
 
 
-class CMA(Optimizer)
+class CMA(Optimizer):
+    pass
 
 
 
+# Aliases
+ga = GA
+nga = NGA
+cma = CMA
 
-        
+all_classes={}
+all_classes['ga'] = GA()
+all_classes['nga'] = NGA()
