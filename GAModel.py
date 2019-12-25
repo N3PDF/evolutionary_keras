@@ -1,54 +1,47 @@
+# How to deal with MetaModel?
+
 from keras.models import Model 
-from Evolutionary_Optimizers import NGA
+import keras.optimizers as keras_opt
+import Evolutionary_Optimizers as evo_opt
 
 class GAModel(Model):
-    def __init__(self, input, output, is_genetic = False, *args, **kwargs):
-        super(GAModel, self).__init__(input, output, *args, **kwargs)
-        #self.input_shape = inputs
-        #self.output_shape = output
-        #self.is_genetic = is_genetic
+          
+    optimizers={
+        "sgd": keras_opt.SGD,
+        "rmsprop": keras_opt.RMSprop,
+        "adagrad": keras_opt.Adagrad,
+        "adadelta": keras_opt.Adadelta,
+        "adam": keras_opt.Adam,
+        "adamax": keras_opt.Adamax,
+        "nadam": keras_opt.Nadam,
+        "ga": evo_opt.GA,
+        "nga": evo_opt.NGA,
+        "cma": evo_opt.CMA,
+    }
 
-    def compile(self, optimizer, loss, metrics, *args, **kwargs ):
-        if hasattr('self.optimizer', 'is_genetic'):
-            self.optimizer = optimizer
-            self.loss = loss
-            self.metrics = metrics
-            super().compile(optimizer='adam', loss=loss, metrics=metrics)
-        else:
-            super().compile(optimizer=optimizer, loss=loss, metrics=metrics)
+    def __init__(self, input_tensor, output_tensor, **kwargs):
+        super(GAModel, self).__init__(input_tensor, output_tensor, **kwargs)
+        self.input_tensor = input_tensor
+        self.output_tensor = output_tensor
 
-
-    def fit(self, x=None, y=None, epochs=10, *args, **kwargs):
-        if hasattr('self.optimizer', 'is_genetic'):
-            self.optimizer.import_model()
+    def compile(self, loss, metrics, optimizer, is_genetic = False, **kwargs):
+        optimizer = optimizer.lower()
+        self.myopt = self.optimizers[optimizer]
+        self.is_genetic = hasattr(self.myopt, 'is_genetic')
+        super().compile(optimizer='rmsprop', loss=loss, metrics=metrics)
+             
+    def fit(self, x=None, y=None, epochs=10, **kwargs):
+        if self.is_genetic:
             for epoch in range(epochs):
-                self.weights_size = self.optimizer.get_shape()
-                mutant = self.optimizer.create_mutants()
-                out = self.optimizer.evaluate_mutants()
-                self.optimizer.kill_mutants()
+                model = self.myopt.import_model(self)
+                weights_size = self.myopt.get_shape(self, model=model)
+                mutant = self.myopt.create_mutants()
+                out = self.myopt.evaluate_mutants()
+                self.myopt.kill_mutants()
         else: 
-            super().fit(x, y, *args, **kwargs)
+            history = super().fit(x, y, **kwargs)
+            return history
 
-
-
-""" 
-class GAmodel(Model):
-
-    def compile(self, is_genetic = False, ):
-        if is_genetic:
-            self.is_genetic = True
-            self.optimizer = optimizer
-            self.model = import_model()
-
-
-
-
-    def fit(self):
-        if self.is_not_genetic:
-            super().fit()
-            return
-
-
-        self.optimizer.create_mutants(model = self)
-        self.optimizer.kill_mutants(model = self)
- """
+    def evaluate(self, x=None, y=None, **kwargs):
+        out = super().evaluate(x, y, **kwargs)
+        return out

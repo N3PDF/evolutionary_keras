@@ -59,8 +59,8 @@ dense = Dense(64, activation='relu')(flatten)
 dense = Dense(64, activation='relu')(dense)
 prediction = Dense(10, activation='softmax')(dense)
 
-model = GAModel(input=inputs, output=prediction)
-model.compile(optimizer='rmsprop',
+model = GAModel(input_tensor=inputs, output_tensor=prediction)
+model.compile(optimizer='nga',
                 loss='categorical_crossentropy',
                 metrics=['accuracy'])
 

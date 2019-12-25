@@ -19,13 +19,12 @@ class NGA(Optimizer):
     adding normally distributed values with normal distrubtion given by sigma. 
     """
 
-    is_genetic = True
-
     def __init__(self, population_size = 80, sigma_init = 10, mutation_rate = 0.05, *args, **kwargs):
         self.population_size = population_size
         self.sigma_init = sigma_init
         self.mutation_rate = mutation_rate
 
+    is_genetic = True
 
     def get_updates(self):
         return params
@@ -33,10 +32,11 @@ class NGA(Optimizer):
 
     def import_model(self):
         self.model = Model
-        return model
+        return self.model
 
 
     def get_shape(self, model):
+        training_model = copy.deepcopy(model)
         original_weights = []
         for i in range(6):
             original_weights.append(training_model.get_weights()[i])
@@ -59,8 +59,8 @@ class NGA(Optimizer):
         return self.weight_size
 
 
-    def create_mutants(self, model):
-        mutant.append(training_model.get_weights())
+    def create_mutants(self, training_model):
+        mutant.append(self.training_model.get_weights())
 
         for k in range(population_size):
             mutant.append(copy.deepcopy( mutant[0] ) )
@@ -117,14 +117,3 @@ class NGA(Optimizer):
 
 class CMA(Optimizer):
     pass
-
-
-
-# Aliases
-ga = GA
-nga = NGA
-cma = CMA
-
-all_classes={}
-all_classes['ga'] = GA()
-all_classes['nga'] = NGA()
