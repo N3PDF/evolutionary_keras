@@ -21,8 +21,6 @@ class GAModel(Model):
 
     def __init__(self, input_tensor, output_tensor, **kwargs):
         super(GAModel, self).__init__(input_tensor, output_tensor, **kwargs)
-        self.input_tensor = input_tensor
-        self.output_tensor = output_tensor
 
     def compile(self, loss, metrics, optimizer, is_genetic = False, **kwargs):
         optimizer = optimizer.lower()
@@ -30,18 +28,19 @@ class GAModel(Model):
         self.is_genetic = hasattr(self.myopt, 'is_genetic')
         super().compile(optimizer='rmsprop', loss=loss, metrics=metrics)
              
-    def fit(self, x=None, y=None, epochs=10, **kwargs):
+    def fit(self, x_train=None, y_train=None, epochs=10, **kwargs):
         if self.is_genetic:
+            self.myopt.initialize_training(self=self.myopt, training_model=self, x_train=x_train, y_train=y_train)
+            weights_size = self.myopt.get_shape(self=self.myopt, model = self)
             for epoch in range(epochs):
-                model = self.myopt.import_model(self)
-                weights_size = self.myopt.get_shape(self, model=model)
-                mutant = self.myopt.create_mutants()
-                out = self.myopt.evaluate_mutants()
-                self.myopt.kill_mutants()
+                mutant = self.myopt.create_mutants(self=self.myopt, training_model = self, weight_size=weights_size)
+                out_fit = self.myopt.evaluate_mutants(self=self.myopt, training_model = self, mutant = mutant, x_train=x_train, y_train=y_train)
+                print('epoch: ', epoch, '/', epochs  )
+            return out_fit                
         else: 
-            history = super().fit(x, y, **kwargs)
+            history = super().fit(x_train, y_train, **kwargs)
             return history
 
     def evaluate(self, x=None, y=None, **kwargs):
-        out = super().evaluate(x, y, **kwargs)
-        return out
+        out_eval = super().evaluate(x=x, y=y, **kwargs)
+        return out_eval
