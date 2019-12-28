@@ -35,11 +35,11 @@ class GAModel(Model):
             for epoch in range(epochs):
                 mutant = self.myopt.create_mutants(self=self.myopt, training_model = self, weight_size=weights_size)
                 out_fit = self.myopt.evaluate_mutants(self=self.myopt, training_model = self, mutant = mutant, x_train=x_train, y_train=y_train)
-                print('epoch: ', epoch, '/', epochs  )
-            return out_fit                
+                self.set_weights(out_fit[1])
+                print('epoch: ', epoch, '/', epochs, ', accuracy: ', out_fit[0][1]  )             
         else: 
-            history = super().fit(x_train, y_train, **kwargs)
-            return history
+            out_fit = super().fit(x_train, y_train, **kwargs)
+        return out_fit[0]
 
     def evaluate(self, x=None, y=None, **kwargs):
         out_eval = super().evaluate(x=x, y=y, **kwargs)

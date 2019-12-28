@@ -32,7 +32,7 @@ class NGA(Optimizer):
         pass
 
 
-    def initialize_training(self, training_model, population_size = 80, mutation_rate = 0.05, sigma_original = 15, x_train=None, y_train=None):
+    def initialize_training(self, training_model, population_size = 10, mutation_rate = 0.05, sigma_original = 10, x_train=None, y_train=None):
         if hasattr(self, 'self.population_size') != True:
             self.population_size = population_size
             self.mutation_rate = mutation_rate
@@ -49,9 +49,9 @@ class NGA(Optimizer):
         for i in range(6):
             original_weights.append(training_model.get_weights()[i])
 
-        self.non_training_weights = []
+        """ self.non_training_weights = []
         for i in range(6, len( training_model.get_weights() ) ):
-            self.non_training_weights.append( training_model.get_weights()[i] )
+            self.non_training_weights.append( training_model.get_weights()[i] ) """
 
         weight_size = []
         self.N_nodes = 0
@@ -95,7 +95,7 @@ class NGA(Optimizer):
                 else:
                     mutant[k+1][layer][node_in_layer] += sigma_eff * np.random.randn() 
                 
-                mutant[k+1].append(self.non_training_weights)
+                """ mutant[k+1].append(self.non_training_weights) """
 
         return mutant
 
@@ -109,6 +109,7 @@ class NGA(Optimizer):
                     self.accuracy = accuray_new
                     most_accurate_model = i
 
+
         if(most_accurate_model == 0):
             self.N_generations += 1
             self.sigma = self.sigma_original/self.N_generations
@@ -117,9 +118,9 @@ class NGA(Optimizer):
 
         out = training_model.evaluate(verbose=False, x=x_train, y=y_train)
 
-        return out
+        return out, mutant[most_accurate_model]
 
-
+    # Not being used 
     def kill_mutants(self):
         mutant = []
         return mutant
