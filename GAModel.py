@@ -34,12 +34,12 @@ class GAModel(Model):
             weights_size = self.myopt.get_shape(self=self.myopt, model = self)
             for epoch in range(epochs):
                 mutant = self.myopt.create_mutants(self=self.myopt, training_model = self, weight_size=weights_size)
-                out_fit = self.myopt.evaluate_mutants(self=self.myopt, training_model = self, mutant = mutant, x_train=x_train, y_train=y_train)
-                self.set_weights(out_fit[1])
-                print('epoch: ', epoch, '/', epochs, ', accuracy: ', out_fit[0][1]  )             
+                score, selected_parent = self.myopt.evaluate_mutants(self=self.myopt, training_model = self, mutant = mutant, x_train=x_train, y_train=y_train)
+                self.set_weights(selected_parent)
+                print('epoch: ', epoch, '/', epochs, ', accuracy: ', score[1], 'sigma:', self.myopt.sigma )             
         else: 
-            out_fit = super().fit(x_train, y_train, **kwargs)
-        return out_fit[0]
+            super().fit(x_train, y_train, **kwargs)
+# create history to return?
 
     def evaluate(self, x=None, y=None, **kwargs):
         out_eval = super().evaluate(x=x, y=y, **kwargs)

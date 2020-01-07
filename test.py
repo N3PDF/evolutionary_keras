@@ -21,11 +21,14 @@ from keras.layers import Dense, Input, Flatten
 
 from GAModel import GAModel
 import Evolutionary_Optimizers
+from cmaes import CMA
 
 
 batch_size = 128
 num_classes = 10
-epochs = 100
+epochs = 40000
+
+max_epochs = 40000
 
 # input image dimensions
 img_rows, img_cols = 28, 28
@@ -76,15 +79,19 @@ model.add(Dense(128, activation='relu'))
 model.add(Dropout(0.5))
 model.add(Dense(num_classes, activation='softmax')) """
 
-""" model.compile(loss=keras.losses.categorical_crossentropy,
-              optimizer=keras.optimizers.Adadelta(),
-              metrics=['accuracy'])
- """
-modelletje.fit(x_train, y_train,
+weights = modelletje.get_weights()
+weights = keras.layers.Flatten(modelletje)
+
+
+
+best_solution, best_fitness = cma.search()
+
+
+""" modelletje.fit(x_train, y_train,
           batch_size=batch_size,
           epochs=epochs,
           verbose=1,
           validation_data=(x_test, y_test))
-score = modelletje.evaluate(x=x_test, y=y_test, verbose=0)
+score = modelletje.evaluate(x=x_test, y=y_test, verbose=0) 
 print('Test loss:', score[0])
-print('Test accuracy:', score[1])
+print('Test accuracy:', score[1])"""

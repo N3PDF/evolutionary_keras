@@ -32,7 +32,7 @@ class NGA(Optimizer):
         pass
 
 
-    def initialize_training(self, training_model, population_size = 10, mutation_rate = 0.05, sigma_original = 10, x_train=None, y_train=None):
+    def initialize_training(self, training_model, population_size = 10, mutation_rate = 0.05, sigma_original = 0.005, x_train=None, y_train=None):
         if hasattr(self, 'self.population_size') != True:
             self.population_size = population_size
             self.mutation_rate = mutation_rate
@@ -40,7 +40,7 @@ class NGA(Optimizer):
 
         self.N_generations = 1
         self.sigma=self.sigma_original
-        self.accuracy = training_model.evaluate(x_train,y_train)[0]
+        self.accuracy = training_model.evaluate(x_train, y_train, verbose=0)[0]
 
 
     def get_shape(self, model):
@@ -104,8 +104,8 @@ class NGA(Optimizer):
         most_accurate_model = 0   
         for i in range(self.population_size+1):
                 training_model.set_weights(mutant[i])
-                accuray_new=training_model.evaluate(verbose=False, x=x_train, y=y_train)[0]
-                if(accuray_new < self.accuracy):
+                accuray_new=training_model.evaluate(verbose=False, x=x_train, y=y_train)[1]
+                if(accuray_new > self.accuracy):
                     self.accuracy = accuray_new
                     most_accurate_model = i
 
