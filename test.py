@@ -1,4 +1,3 @@
-
 '''Trains a simple convnet on the MNIST dataset.
 Gets to 99.25% test accuracy after 12 epochs
 (there is still a lot of margin for parameter tuning).
@@ -22,11 +21,12 @@ from keras.layers import Dense, Input, Flatten
 from GAModel import GAModel
 import Evolutionary_Optimizers
 from cmaes import CMA
+import Evolutionary_Optimizers
 
 
 batch_size = 128
 num_classes = 10
-epochs = 40000
+epochs = 5
 
 max_epochs = 40000
 
@@ -63,35 +63,20 @@ dense = Dense(64, activation='relu')(flatten)
 dense = Dense(64, activation='relu')(dense)
 prediction = Dense(10, activation='softmax')(dense)
 
-modelletje = GAModel(input_tensor=inputs, output_tensor=prediction)
-modelletje.compile(optimizer='nga',
+model = GAModel(input_tensor=inputs, output_tensor=prediction)
+
+myopt = Evolutionary_Optimizers.NGA(population_size=2, sigma_original=0.00000005)
+model.compile(optimizer=myopt,
                 loss='categorical_crossentropy',
                 metrics=['accuracy'])
-""" model = Sequential()
-model.add(Conv2D(32, kernel_size=(3, 3),
-                 activation='relu',
-                 input_shape=input_shape))
-model.add(Conv2D(64, (3, 3), activation='relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.25))
-model.add(Flatten())
-model.add(Dense(128, activation='relu'))
-model.add(Dropout(0.5))
-model.add(Dense(num_classes, activation='softmax')) """
 
-weights = modelletje.get_weights()
-weights = keras.layers.Flatten(modelletje)
-
-
-
-best_solution, best_fitness = cma.search()
-
-
-""" modelletje.fit(x_train, y_train,
+history = model.fit(x_train, y_train,
           batch_size=batch_size,
           epochs=epochs,
           verbose=1,
-          validation_data=(x_test, y_test))
-score = modelletje.evaluate(x=x_test, y=y_test, verbose=0) 
+          #validation_data=(x_test, y_test)
+          )
+import ipdb; ipdb.set_trace()
+score = model.evaluate(x=x_test, y=y_test, verbose=0) 
 print('Test loss:', score[0])
-print('Test accuracy:', score[1])"""
+print('Test accuracy:', score[1])
