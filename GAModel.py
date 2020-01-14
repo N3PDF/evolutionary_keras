@@ -56,12 +56,12 @@ class GAModel(Model):
         if self.is_genetic:
             # What does keras fit do with the validation data?
             if validation_data is not None:
-                x_test = validation_data[0]
-                y_test = validation_data[1]
+                x_val = validation_data[0]
+                y_val = validation_data[1]
 
             for epoch in range(epochs):
-                score = self.optimizer_instance.run_step( model = self, 
-                x=x, y=y )
+                score, best_mutant = self.optimizer_instance.run_step( model = self, x=x, y=y )
+                self.set_weights(best_mutant)
 
                 if epoch is 0:
                     # use numpy array becuase list can only give one type of score at each epoch 
@@ -98,4 +98,4 @@ class returnvalues:
         self.epoch = [*range(epochs)]
         self.model = model
         self.validation_data = validation_data
-    # add params dictionary as attribute
+        self.params = params

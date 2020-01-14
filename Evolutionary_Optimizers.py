@@ -126,10 +126,6 @@ class NGA(EvolutionaryStragegies):
         if(most_accurate_model == 0):
             self.N_generations += 1
             self.sigma = self.sigma_original/self.N_generations
- 
-        model.set_weights(mutant[most_accurate_model])
-
-        #out = model.evaluate(verbose=False, x=x_train, y=y_train)
 
         return output, mutant[most_accurate_model]
 
@@ -146,13 +142,13 @@ class NGA(EvolutionaryStragegies):
         # Initialize training paramters
         if self.has_init_variables is not True:
             self.N_generations = 1
-            self.accuracy = model.evaluate(x, y, verbose=0)[0]
+            self.accuracy = model.evaluate(x, y, verbose=0)[1]
             self.has_init_variables = True     
 
         mutant = self.create_mutants( model=model, shape=self.shape )
         score, selected_parent = self.evaluate_mutants(model=model, mutant=mutant, x=x, y=y)
-        model.set_weights(selected_parent)
-        return score
+
+        return score, selected_parent
 
 
 

@@ -1,9 +1,3 @@
-'''Trains a simple convnet on the MNIST dataset.
-Gets to 99.25% test accuracy after 12 epochs
-(there is still a lot of margin for parameter tuning).
-16 seconds per epoch on a GRID K520 GPU.
-'''
-
 """ from __future__ import print_function
 import keras
 from keras.datasets import mnist
@@ -26,7 +20,7 @@ import Evolutionary_Optimizers
 
 batch_size = 128
 num_classes = 10
-epochs = 5
+epochs = 40000
 
 max_epochs = 40000
 
@@ -65,18 +59,17 @@ prediction = Dense(10, activation='softmax')(dense)
 
 model = GAModel(input_tensor=inputs, output_tensor=prediction)
 
-myopt = Evolutionary_Optimizers.NGA(population_size=2, sigma_original=0.00000005)
+myopt = Evolutionary_Optimizers.NGA(population_size=100, sigma_original=15)
 model.compile(optimizer=myopt,
                 loss='categorical_crossentropy',
                 metrics=['accuracy'])
 
-history = model.fit(x_train, y_train,
+history = model.fit(x=x_train, y=y_train,
           batch_size=batch_size,
           epochs=epochs,
           verbose=1,
           #validation_data=(x_test, y_test)
           )
-import ipdb; ipdb.set_trace()
 score = model.evaluate(x=x_test, y=y_test, verbose=0) 
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
