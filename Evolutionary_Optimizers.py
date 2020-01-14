@@ -118,9 +118,9 @@ class NGA(EvolutionaryStragegies):
                 # replace weights of the input model by weights generated using the create_mutants function
                 model.set_weights(mutant[i])
                 output=model.evaluate(verbose=False, x=x, y=y)
-                accuracy_new=output[1]
-                if(accuracy_new > self.accuracy):
-                    self.accuracy = accuracy_new
+                loss_new=output[0]
+                if(loss_new < self.loss):
+                    self.loss = loss_new
                     most_accurate_model = i
         # if none of the mutants have performed better on the training data than the original mutant, reduce sigma
         if(most_accurate_model == 0):
@@ -142,7 +142,7 @@ class NGA(EvolutionaryStragegies):
         # Initialize training paramters
         if self.has_init_variables is not True:
             self.N_generations = 1
-            self.accuracy = model.evaluate(x, y, verbose=0)[1]
+            self.loss = model.evaluate(x, y, verbose=0)[0]
             self.has_init_variables = True     
 
         mutant = self.create_mutants( model=model, shape=self.shape )
