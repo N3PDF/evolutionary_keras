@@ -52,7 +52,7 @@ class GAModel(Model):
              
    
     # If the optimizer is genetic the fitting precedure consists of executing run_stop for the given number of epochs
-    def fit(self, x_train=None, y_train=None, validation_data=None, epochs=1, verbose = 0, **kwargs):
+    def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose = 0, **kwargs):
         if self.is_genetic:
             # What does keras fit do with the validation data?
             if validation_data is not None:
@@ -61,7 +61,7 @@ class GAModel(Model):
 
             for epoch in range(epochs):
                 score = self.optimizer_instance.run_step( model = self, 
-                x_train=x_train, y_train=y_train )
+                x=x, y=y )
 
                 if epoch is 0:
                     # use numpy array becuase list can only give one type of score at each epoch 
@@ -94,7 +94,7 @@ class GAModel(Model):
           
         else: 
             # if not is_gentic, let keras deal with the fit.
-            return super().fit(x=x_train, y=y_train, validation_data=validation_data, epochs=epochs, **kwargs)
+            return super().fit(x=x, y=y, validation_data=validation_data, epochs=epochs, verbose=verbose, **kwargs)
 
 
     # Evaluate is done by keras

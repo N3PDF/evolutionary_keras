@@ -4,10 +4,10 @@ from copy import deepcopy
 from keras.optimizers import Optimizer
 
 
-class ES(Optimizer):
+class EvolutionaryStragegies(Optimizer):
 
     """ 
-    'ES' contains functions shared by the Evolutionary Strategies (ES) in this file. 
+    EvolutionaryStrategies contains functions shared by the Evolutionary Strategies in this file. 
     """
     
     #Can we remove this?
@@ -15,11 +15,11 @@ class ES(Optimizer):
         pass
 
 
-class GA(ES):
+class GA(EvolutionaryStragegies):
     pass
 
 
-class NGA(ES):
+class NGA(EvolutionaryStragegies):
 
     """
     The Nodal Genetic Algorithm (NGA) is similar to the regular GA, but this time a number
@@ -110,14 +110,14 @@ class NGA(ES):
 
 
     # Evalutates all mutantants of a generationa and ouptus loss and the single best performing mutant of the generation 
-    def evaluate_mutants(self, model, mutant, x_train=None, y_train=None, ):
+    def evaluate_mutants(self, model, mutant, x=None, y=None, ):
 
         # most_accurate_model=0 corresponds to setting the input model as most accurate
         most_accurate_model = 0   
         for i in range(self.population_size+1):
                 # replace weights of the input model by weights generated using the create_mutants function
                 model.set_weights(mutant[i])
-                output=model.evaluate(verbose=False, x=x_train, y=y_train)
+                output=model.evaluate(verbose=False, x=x, y=y)
                 accuracy_new=output[1]
                 if(accuracy_new > self.accuracy):
                     self.accuracy = accuracy_new
@@ -141,28 +141,28 @@ class NGA(ES):
 
 
     # Collects the functions defined above to form the fitting step that is to be repeated for a number of epochs
-    def run_step(self, model, x_train, y_train):
+    def run_step(self, model, x, y):
         
         # Initialize training paramters
         if self.has_init_variables is not True:
             self.N_generations = 1
-            self.accuracy = model.evaluate(x_train, y_train, verbose=0)[0]
+            self.accuracy = model.evaluate(x, y, verbose=0)[0]
             self.has_init_variables = True     
 
         mutant = self.create_mutants( model=model, shape=self.shape )
-        score, selected_parent = self.evaluate_mutants(model=model, mutant=mutant, x_train=x_train, y_train=y_train)
+        score, selected_parent = self.evaluate_mutants(model=model, mutant=mutant, x=x, y=y)
         model.set_weights(selected_parent)
         return score
 
 
 
-class CMA(ES):
+class CMA(EvolutionaryStragegies):
     pass
 
 
-class BFGS(ES):
+class BFGS(EvolutionaryStragegies):
     pass
 
 
-class CeresSolver(ES):
+class CeresSolver(EvolutionaryStragegies):
     pass
