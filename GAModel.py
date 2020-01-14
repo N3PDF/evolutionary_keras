@@ -49,7 +49,7 @@ class GAModel(Model):
             optimizer.prepare_during_compile(model = self)
         else: 
             super().compile(optimizer=optimizer, **kwargs)
-             
+    
    
     # If the optimizer is genetic the fitting precedure consists of executing run_stop for the given number of epochs
     def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose = 0, **kwargs):
@@ -75,21 +75,11 @@ class GAModel(Model):
 
             # keras fit outputs history as dict with dict.values list type, so we convert numpy->list as well
             history_temp = history_temp.tolist()
-            history1 = {}
+            history = {}
             for i in range ( len(score) ):
-                history1[ self.metrics_names[i] ] = history_temp[i] 
+                history[ self.metrics_names[i] ] = history_temp[i] 
             
-            validation_data1 = validation_data
-
-            # we use history=history1 because history=history does not work, same for validation_data
-            class returnvalues:
-                history = history1
-                epoch = [*range(epochs)]
-                model = self
-                validation_data = validation_data1
-                # add params dictionary as attribute
-            
-            out = returnvalues()
+            out = returnvalues(self, history, epochs, validation_data)
             return out
           
         else: 
@@ -100,3 +90,12 @@ class GAModel(Model):
     # Evaluate is done by keras
     def evaluate(self, *args, **kwargs):
         return super().evaluate(*args, **kwargs)
+
+
+class returnvalues:
+    def __init__(self, model=None, history=None, epochs=None, validation_data=None, params=None):
+        self.history = history
+        self.epoch = [*range(epochs)]
+        self.model = model
+        self.validation_data = validation_data
+    # add params dictionary as attribute
