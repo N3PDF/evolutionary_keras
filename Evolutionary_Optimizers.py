@@ -48,6 +48,19 @@ class NGA(EvolutionaryStragegies):
 
         self.non_training_weights = model.non_trainable_weights
 
+        
+        self.N_nodes = 0
+        weight_size = []
+        for weight in original_weights:
+            shape = weight.shape
+            weight_size.append(shape)
+            if len(shape) == 1:
+                shape = shape[0]
+                self.N_nodes += shape
+        return weight_size
+        '''
+
+
         weight_size = []
         self.N_nodes = 0
         for i in range( len( original_weights ) ):
@@ -59,8 +72,8 @@ class NGA(EvolutionaryStragegies):
                 c = len( original_weights[i] ) 
                 r = len( original_weights[i][0] )
                 weight_size.append( [ c, r ] )
-        return weight_size
-        
+        return weight_size'''
+      
 
     # Takes a single mutant as input and creates a new generation by performing random nodal mutations
     # To change node and corresponding weights with probability, set change_both_weights_and_biases_of_a_node=True
@@ -82,11 +95,12 @@ class NGA(EvolutionaryStragegies):
                 # find the nodes in their respective layers
                 count_nodes = 0
                 layer = 1
+                # HERE WEIGHT-BIAS-WEIGHT-BIAS IS ALSO ASSUMED BY THE +=2 
                 while count_nodes <= i:
-                    count_nodes += shape[layer] 
+                    count_nodes += shape[layer][0] 
                     layer += 2
                 layer -= 2
-                count_nodes -= shape[layer]
+                count_nodes -= shape[layer][0]
                 node_in_layer = i - count_nodes 
 
                 # mutate weights and biases by adding values from random distrubution

@@ -59,8 +59,8 @@ prediction = Dense(10, activation='softmax')(dense)
 
 model = GAModel(input_tensor=inputs, output_tensor=prediction)
 
-myopt = Evolutionary_Optimizers.NGA(population_size=100, sigma_original=15)
-model.compile(optimizer=myopt,
+myopt = Evolutionary_Optimizers.NGA(population_size=2, sigma_original=15)
+model.compile(optimizer='nga',
                 loss='categorical_crossentropy',
                 metrics=['accuracy'])
 
