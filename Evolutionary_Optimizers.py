@@ -108,7 +108,11 @@ class NGA(EvolutionaryStragegies):
                 
         return mutant
 
-
+    # RESULTS DO IMPROVE WHEN TRAINING BASED ON SELECTING HIGHEST ACCURACY, BUT NOT IF SELECTION IS BASED ON LOWEST LOSS
+    # ALSO, THE ACCURACY CHANGES AFTER THE WEIGHTS OF THE BEST PERFROMING MODEL ARE LOADED INTO THE MODEL AGAIN, IS THERE
+    # SOME RANDOMIZATION DONE BY TENSORFLOW? BUT THE MODEL DOES NOT INCLUDE THINGS SUCH AS DROPOUT LAYER. SHOULD WE USE DIFFERENT
+    # METHOD TO SAVE AND LOAD MODELS?
+     
     # Evalutates all mutantants of a generationa and ouptus loss and the single best performing mutant of the generation 
     def evaluate_mutants(self, model, mutant, x=None, y=None, ):
 
@@ -118,10 +122,15 @@ class NGA(EvolutionaryStragegies):
                 # replace weights of the input model by weights generated using the create_mutants function
                 model.set_weights(mutant[i])
                 output=model.evaluate(verbose=False, x=x, y=y)
-                loss_new=output[0]
+                if self.loss_is_list_type:
+                    loss_new = output[0]
+                else:
+                    loss_new = output
+
                 if(loss_new < self.loss):
                     self.loss = loss_new
                     most_accurate_model = i
+
         # if none of the mutants have performed better on the training data than the original mutant, reduce sigma
         if(most_accurate_model == 0):
             self.N_generations += 1
@@ -140,9 +149,12 @@ class NGA(EvolutionaryStragegies):
     def run_step(self, model, x, y):
         
         # Initialize training paramters
-        if self.has_init_variables is not True:
+        if self.has_init_variables != True:
             self.N_generations = 1
-            self.loss = model.evaluate(x, y, verbose=0)[0]
+            self.loss = model.evaluate(x=x, y=y, verbose=0)
+            if isinstance( self.loss, list): 
+                self.loss = self.loss[0]
+                self.loss_is_list_type = True
             self.has_init_variables = True     
 
         mutant = self.create_mutants( model=model, shape=self.shape )
