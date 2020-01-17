@@ -21,6 +21,7 @@ def get_number_nodes(layer):
         nodes = sum(output_nodes)
     return nodes
 
+
 def parse_eval(loss):
     """ Parses the result from `model.evaluate`, which sometimes
     comes as a list and sometimes comes as one single float
@@ -68,7 +69,6 @@ class EvolutionaryStrategies(Optimizer):
         score = 0
         selected_parent = None
         return score, selected_parent
-
 
     def get_updates(self, loss, params):
         """ Capture Keras get_updates method """
@@ -131,7 +131,7 @@ class NGA(EvolutionaryStrategies):
         # TODO related to previous TODO: non trianable weights should not be important
         self.non_training_weights = self.model.non_trainable_weights
         return weight_shapes
-       
+
     def create_mutants(self, change_both_wb=True):
         """
         Takes the current state of the network as the starting mutant and creates a new generation
@@ -152,7 +152,7 @@ class NGA(EvolutionaryStrategies):
             # TODO seed numpy random at initialization time
             # Note that we might mutate the same node several times for the same mutant
             for _ in range(nodes_to_mutate):
-                mutated_nodes.append( np.random.randint(self.n_nodes) )
+                mutated_nodes.append(np.random.randint(self.n_nodes))
 
             for i in mutated_nodes:
                 # Find the nodes in their respective layers
@@ -170,16 +170,20 @@ class NGA(EvolutionaryStrategies):
                 # Mutate weights and biases by adding values from random distributions
                 sigma_eff = self.sigma * (self.n_generations ** (-np.random.rand()))
                 if change_both_wb:
-                    randn_mutation = sigma_eff * np.random.randn(self.shape[layer - 1][0])
+                    randn_mutation = sigma_eff * np.random.randn(
+                        self.shape[layer - 1][0]
+                    )
                     mutant[layer - 1][:, node_in_layer] += randn_mutation
                     mutant[layer][node_in_layer] += sigma_eff * np.random.randn()
                 else:
-                    change_weight = np.random.randint(2, dtype='bool')
+                    change_weight = np.random.randint(2, dtype="bool")
                     if change_weight:
-                        randn_mutation = sigma_eff * np.random.randn(self.shape[layer - 1][0])
+                        randn_mutation = sigma_eff * np.random.randn(
+                            self.shape[layer - 1][0]
+                        )
                         mutant[layer - 1][:, node_in_layer] += randn_mutation
                     else:
-                        mutant[layer][node_in_layer] += (sigma_eff * np.random.randn())
+                        mutant[layer][node_in_layer] += sigma_eff * np.random.randn()
             mutants.append(mutant)
         return mutants
 
@@ -189,7 +193,7 @@ class NGA(EvolutionaryStrategies):
     # METHOD TO SAVE AND LOAD MODELS?
 
     # Evalutates all mutantants of a generationa and ouptus loss and the single best performing mutant of the generation
-    def evaluate_mutants(self, mutants, x=None, y=None, verbose = 0):
+    def evaluate_mutants(self, mutants, x=None, y=None, verbose=0):
         """ Evaluates all mutants of a generation and select the best one.
 
         Parameters
@@ -218,7 +222,7 @@ class NGA(EvolutionaryStrategies):
                 best_loss = loss
                 best_mutant = mutant
                 new_mutant = True
-        
+
         # if none of the mutants have performed better on the training data than the original mutant
         # reduce sigma
         if not new_mutant:
