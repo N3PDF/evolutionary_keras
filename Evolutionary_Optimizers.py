@@ -9,6 +9,19 @@ from copy import deepcopy
 from keras.optimizers import Optimizer
 
 
+def get_number_nodes(layer):
+    """ Given a keras layer, outputs the number of nodes """
+    nodes = 0
+    # It is necessary to check whether the layer is trainable
+    # AND whether it has any weights which is trainable
+    if layer.trainable and layer.trainable_weights:
+        # The first dimension is always the batch size so
+        # this is a good proxy for the number of nodes
+        output_nodes = layer.get_output_shape_at(0)[1:]
+        nodes = sum(output_nodes)
+    return nodes
+
+
 class EvolutionaryStrategies(Optimizer):
     """ Parent class for all Evolutionary Strategies
     """
@@ -16,6 +29,7 @@ class EvolutionaryStrategies(Optimizer):
     def __init__(self, *args, **kwargs):
         self.model = None
         self.shape = None
+        self.non_training_weights = []
 
     @abstractmethod
     def get_shape(self):
@@ -70,6 +84,14 @@ class NGA(EvolutionaryStrategies):
     # Only works if all non_trainable_weights come after all trainable_weights
     # perhaps part of the functionality (getting shape) can be moved to ES
     def get_shape(self):
+        """ Study the model to get the shapes of all trainable weight as well
+        as the number of nodes. It also saves a reference to the non-trainable weights
+        in the system.
+
+        Returns
+        -------
+            `weight_shapes`: a list of the shapes of all trainable weights
+        """
         # Initialize number of nodes
         self.n_nodes = 0
         # Get trainable weight from the model and their shapes
@@ -79,13 +101,7 @@ class NGA(EvolutionaryStrategies):
         # corresponding weights, since the nodes are the output of the layer
         # and the weights the corresponding to that layer
         for layer in self.model.layers:
-            # It is necessary to check whether the layer is trainable
-            # AND whether it has any weights which is trainable
-            if layer.trainable and layer.trainable_weights:
-                # The first dimension is always the batch size so
-                # this is a good proxy for the number of nodes
-                output_nodes = layer.get_output_shape_at(0)[1:]
-                self.n_nodes += sum(output_nodes)
+            self.n_nodes += get_number_nodes(layer)
         # TODO related to previous TODO: non trianable weights should not be important
         self.non_training_weights = self.model.non_trainable_weights
         return weight_shapes
@@ -177,15 +193,12 @@ class NGA(EvolutionaryStrategies):
 
     # --------------------- only the functions below are called in GAModel ---------------------
 
-    # Run during compilation to get objects that are unchanged at fit()
-    def prepare_during_compile(self, model):
-        self.shape = self.get_shape(model=model)
-
     # Collects the functions defined above to form the fitting step that is to be repeated for a number of epochs
     def run_step(self, x, y):
+        """ Wrapper to run one single step of the optimizer"""
 
         # Initialize training paramters
-        if self.has_init_variables != True:
+        if not self.has_init_variables:
             self.N_generations = 1
             self.loss = self.model.evaluate(x=x, y=y, verbose=0)
             if isinstance(self.loss, list):
