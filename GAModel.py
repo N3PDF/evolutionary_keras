@@ -78,7 +78,7 @@ class GAModel(Model):
             if verbose == 1:
                 loss = score[0]
                 sigma = self.opt_instance.sigma
-                information = f" > epoch: {epoch+1}/{epoch}, {loss=} {sigma=}"
+                information = f" > epoch: {epoch+1}/{epochs}, {loss=} {sigma=}"
                 log.info(information)
             # Fill keras history
             history_data = dict(zip(metricas, score))
@@ -87,7 +87,7 @@ class GAModel(Model):
 
     def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, **kwargs):
         """ If the optimizer is genetic, the fitting
-        procedure consists on executing `run_stop` for the given
+        procedure consists on executing `run_step` for the given
         number of epochs """
         if self.is_genetic:
             result = self.perform_genetic_fit()
