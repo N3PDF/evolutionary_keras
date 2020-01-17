@@ -3,9 +3,8 @@
 """
 
 from abc import abstractmethod
-import numpy as np
-import math
 from copy import deepcopy
+import numpy as np
 from keras.optimizers import Optimizer
 
 
@@ -43,6 +42,7 @@ class EvolutionaryStrategies(Optimizer):
     """
 
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.model = None
         self.shape = None
         self.non_training_weights = []
@@ -88,19 +88,19 @@ class NGA(EvolutionaryStrategies):
 
     Parameters
     ----------
-        `sigma_original`: 
+        `sigma_original`:
         `population_size`:
         `mutation_rate`:
     """
 
-    # In case the user wants to adjust sigma_original, population_size or mutation_rate parameters the NGA method has to be initiated
+    # In case the user wants to adjust sigma_original
+    # population_size or mutation_rate parameters the NGA method has to be initiated
     def __init__(
-        self, sigma_original=15, population_size=80, mutation_rate=0.05, *args, **kwargs
+        self, *args, sigma_original=15, population_size=80, mutation_rate=0.05, **kwargs
     ):
         self.sigma_original = sigma_original
         self.population_size = population_size
         self.mutation_rate = mutation_rate
-        self.has_init_variables = False
         self.sigma = sigma_original
         self.n_nodes = 0
         self.n_generations = 1
@@ -231,7 +231,6 @@ class NGA(EvolutionaryStrategies):
         return best_loss, best_mutant
 
     # --------------------- only the functions below are called in GAModel ---------------------
-    # Collects the functions defined above to form the fitting step that is to be repeated for a number of epochs
     def run_step(self, x, y):
         """ Wrapper to run one single step of the optimizer"""
         # Initialize training paramters

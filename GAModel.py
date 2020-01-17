@@ -50,7 +50,8 @@ class GAModel(Model):
     def compile(self, optimizer, **kwargs):
         """ Compile """
         self.parse_optimizer(optimizer)
-        # If the optimizer is genetic, compile using keras while setting a random (keras supported) gradient descent optimizer
+        # If the optimizer is genetic,
+        # compile using keras while setting a random (keras supported) gradient descent optimizer
         if self.is_genetic:
             super().compile(optimizer="rmsprop", **kwargs)
         else:
