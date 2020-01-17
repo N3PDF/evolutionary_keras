@@ -42,10 +42,10 @@ class GAModel(Model):
             optimizer = opt()
         # Check whether the optimizer is an evolutionary
         # optimizer
-        if isinstance(optimizer, Evolutionary_Optimizers.EvolutionaryStragegies):
+        if isinstance(optimizer, Evolutionary_Optimizers.EvolutionaryStrategies):
             self.is_genetic = True
             self.opt_instance = optimizer
-            optimizer.prepare_during_compile(model=self)
+            optimizer.on_compile(self)
 
     def compile(self, optimizer, **kwargs):
         """ Compile """
@@ -71,9 +71,8 @@ class GAModel(Model):
 
         metricas = self.metrics_names
         for epoch in range(epochs):
-            # TODO here the model should note be passed
             # Generate the best mutant
-            score, best_mutant = self.opt_instance.run_step(model=self, x=x, y=y)
+            score, best_mutant = self.opt_instance.run_step(x=x, y=y)
             # Make the best mutant the current one
             self.set_weights(best_mutant)
             if verbose == 1:

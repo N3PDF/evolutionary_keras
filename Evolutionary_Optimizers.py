@@ -1,31 +1,57 @@
+"""
+    This module contains different Evolutionary Optimizers
+"""
+
+from abc import abstractmethod
 import numpy as np
 import math
 from copy import deepcopy
 from keras.optimizers import Optimizer
 
 
-class EvolutionaryStragegies(Optimizer):
-
-    """ 
-    EvolutionaryStrategies contains functions shared by the Evolutionary Strategies in this file. 
+class EvolutionaryStrategies(Optimizer):
+    """ Parent class for all Evolutionary Strategies
     """
 
-    # Can we remove this?
+    def __init__(self, *args, **kwargs):
+        self.model = None
+        self.shape = None
+
+    @abstractmethod
+    def get_shape(self):
+        """ Gets the shape of the weights to train """
+        shape = None
+        return shape
+
+
+    def on_compile(self, model):
+        """ Function to be called by the model during compile time.
+        Register the model `model` with the optimizer.
+        """
+        # Here we can perform some checks as well
+        self.model = model
+        self.shape = self.get_shape()
+
     def get_updates(self, loss, params):
         pass
 
 
-class GA(EvolutionaryStragegies):
+class GA(EvolutionaryStrategies):
     pass
 
 
-class NGA(EvolutionaryStragegies):
-
+class NGA(EvolutionaryStrategies):
     """
     The Nodal Genetic Algorithm (NGA) is similar to the regular GA, but this time a number
-    of nodes (defined by the mutation_rate variable) are selected at random and 
-    only the weights and biases corresponding to the selected nodes are mutated by 
-    adding normally distributed values with normal distrubtion given by sigma. 
+    of nodes (defined by the mutation_rate variable) are selected at random and
+    only the weights and biases corresponding to the selected nodes are mutated by
+    adding normally distributed values with normal distrubtion given by sigma.
+
+    Parameters
+    ----------
+        `sigma_original`: 
+        `population_size`:
+        `mutation_rate`:
     """
 
     # In case the user wants to adjust sigma_original, population_size or mutation_rate parameters the NGA method has to be initiated
@@ -37,49 +63,38 @@ class NGA(EvolutionaryStragegies):
         self.mutation_rate = mutation_rate
         self.has_init_variables = False
         self.sigma = sigma_original
+        self.n_nodes = 0
 
         super(NGA, self).__init__(*args, **kwargs)
 
     # Only works if all non_trainable_weights come after all trainable_weights
     # perhaps part of the functionality (getting shape) can be moved to ES
-    def get_shape(self, model):
-        original_weights = []
-        for i in range(len(model.trainable_weights)):
-            original_weights.append(model.get_weights()[i])
-
-        self.non_training_weights = model.non_trainable_weights
-
-        self.N_nodes = 0
-        weight_size = []
-        for weight in original_weights:
-            shape = weight.shape
-            weight_size.append(shape)
-            if len(shape) == 1:
-                shape = shape[0]
-                self.N_nodes += shape
-        return weight_size
+    def get_shape(self):
+        # Initialize number of nodes
+        self.n_nodes = 0
+        # Get trainable weight from the model and their shapes
+        trainable_weights = self.model.trainable_weights
+        weight_shapes = [weight.shape.as_list() for weight in trainable_weights]
+        # TODO: eventually we should save here a reference to the layer and their
+        # corresponding weights, since the nodes are the output of the layer
+        # and the weights the corresponding to that layer
+        for layer in self.model.layers:
+            # It is necessary to check whether the layer is trainable
+            # AND whether it has any weights which is trainable
+            if layer.trainable and layer.trainable_weights:
+                # The first dimension is always the batch size so
+                # this is a good proxy for the number of nodes
+                output_nodes = layer.get_output_shape_at(0)[1:]
+                self.n_nodes += sum(output_nodes)
+        # TODO related to previous TODO: non trianable weights should not be important
+        self.non_training_weights = self.model.non_trainable_weights
+        return weight_shapes
+       
+    def create_mutants(self, shape, change_both_weights_and_biases_of_a_node=True):
         """
-
-
-        weight_size = []
-        self.N_nodes = 0
-        for i in range( len( original_weights ) ):
-            if i%2 == 1: # Biases
-                a1 = len( original_weights[i] )  
-                self.N_nodes += a1  
-                weight_size.append( a1 )            
-            if i%2 == 0: # Weights
-                c = len( original_weights[i] ) 
-                r = len( original_weights[i][0] )
-                weight_size.append( [ c, r ] )
-        return weight_size"""
-
-    # Takes a single mutant as input and creates a new generation by performing random nodal mutations
-    # To change node and corresponding weights with probability, set change_both_weights_and_biases_of_a_node=True
-    # if change_both_weights_and_biases_of_a_node=False, either a node or the biases of a node will be mutated.
-    def create_mutants(
-        self, model, shape, change_both_weights_and_biases_of_a_node=True
-    ):
+        Takes a single mutant as input and creates a new generation by performing random nodal mutations.
+        To change node and corresponding weights with probability, set change_both_weights_and_biases_of_a_node=True if change_both_weights_and_biases_of_a_node=False, either a node or the biases of a node will be mutated. """
+        model = self.model
         mutant = []
         mutant.append(model.get_weights())
         for k in range(self.population_size):
@@ -88,8 +103,8 @@ class NGA(EvolutionaryStragegies):
             mutated_nodes = []
 
             # select random nodes to mutate
-            for i in range(math.floor(self.N_nodes * self.mutation_rate)):
-                mutated_nodes.append(math.floor(self.N_nodes * np.random.rand()))
+            for i in range(math.floor(self.n_nodes * self.mutation_rate)):
+                mutated_nodes.append(math.floor(self.n_nodes * np.random.rand()))
 
             for i in mutated_nodes:
 
@@ -134,8 +149,9 @@ class NGA(EvolutionaryStragegies):
 
     # Evalutates all mutantants of a generationa and ouptus loss and the single best performing mutant of the generation
     def evaluate_mutants(
-        self, model, mutant, x=None, y=None,
+        self, mutant, x=None, y=None,
     ):
+        model = self.model
 
         # most_accurate_model=0 corresponds to setting the input model as most accurate
         most_accurate_model = 0
@@ -166,32 +182,30 @@ class NGA(EvolutionaryStragegies):
         self.shape = self.get_shape(model=model)
 
     # Collects the functions defined above to form the fitting step that is to be repeated for a number of epochs
-    def run_step(self, model, x, y):
+    def run_step(self, x, y):
 
         # Initialize training paramters
         if self.has_init_variables != True:
             self.N_generations = 1
-            self.loss = model.evaluate(x=x, y=y, verbose=0)
+            self.loss = self.model.evaluate(x=x, y=y, verbose=0)
             if isinstance(self.loss, list):
                 self.loss = self.loss[0]
                 self.loss_is_list_type = True
             self.has_init_variables = True
 
-        mutant = self.create_mutants(model=model, shape=self.shape)
-        score, selected_parent = self.evaluate_mutants(
-            model=model, mutant=mutant, x=x, y=y
-        )
+        mutant = self.create_mutants(shape=self.shape)
+        score, selected_parent = self.evaluate_mutants(mutant=mutant, x=x, y=y)
 
         return score, selected_parent
 
 
-class CMA(EvolutionaryStragegies):
+class CMA(EvolutionaryStrategies):
     pass
 
 
-class BFGS(EvolutionaryStragegies):
+class BFGS(EvolutionaryStrategies):
     pass
 
 
-class CeresSolver(EvolutionaryStragegies):
+class CeresSolver(EvolutionaryStrategies):
     pass

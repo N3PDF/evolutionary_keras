@@ -14,7 +14,7 @@ from keras.layers import Dense, Input, Flatten
 
 from GAModel import GAModel
 import Evolutionary_Optimizers
-from cmaes import CMA
+#from cmaes import CMA
 import Evolutionary_Optimizers
 
 
