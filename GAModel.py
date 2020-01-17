@@ -1,10 +1,11 @@
 """ Implementation of GA Model """
 
+import logging
 from keras.models import Model
-import numpy as np
-import keras.optimizers as keras_opt
+from keras.callbacks.callbacks import History
 import Evolutionary_Optimizers
 
+log = logging.getLogger(__name__)
 
 # Dictionary of the new evolutionay optimizers
 optimizer_dict = {
@@ -27,6 +28,7 @@ class GAModel(Model):
         super().__init__(*args, **kwargs)
         self.is_genetic = False
         self.opt_instance = None
+        self.history = History()
 
     def parse_optimizer(self, optimizer):
         """ Checks whether the optimizer is genetic
@@ -54,71 +56,49 @@ class GAModel(Model):
         else:
             super().compile(optimizer=optimizer, **kwargs)
 
+    def perform_genetic_fit(
+        self, x=None, y=None, epochs=1, verbose=0, validation_data=None
+    ):
+        # Prepare the history for the initial epoch
+        self.history.on_train_begin()
+        # Validation data is currently not being used!!
+        if validation_data is not None:
+            log.warning(
+                "Validation data is not used at the moment by the Genetic Algorithms!!"
+            )
+        #             x_val = validation_data[0]
+        #             y_val = validation_data[1]
+
+        metricas = self.metrics_names
+        for epoch in range(epochs):
+            # TODO here the model should note be passed
+            # Generate the best mutant
+            score, best_mutant = self.opt_instance.run_step(model=self, x=x, y=y)
+            # Make the best mutant the current one
+            self.set_weights(best_mutant)
+            if verbose == 1:
+                loss = score[0]
+                sigma = self.opt_instance.sigma
+                information = f" > epoch: {epoch+1}/{epoch}, {loss=} {sigma=}"
+                log.info(information)
+            # Fill keras history
+            history_data = dict(zip(metricas, score))
+            self.history.on_epoch_end(epoch, history_data)
+        return self.history
+
     def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, **kwargs):
         """ If the optimizer is genetic, the fitting
         procedure consists on executing `run_stop` for the given
         number of epochs """
         if self.is_genetic:
-            # Validation data is currently not being used!!
-            if validation_data is not None:
-                x_val = validation_data[0]
-                y_val = validation_data[1]
-
-            for epoch in range(epochs):
-                score, best_mutant = self.opt_instance.run_step(
-                    model=self, x=x, y=y
-                )
-                self.set_weights(best_mutant)
-
-                if epoch == 0:
-                    # use numpy array becuase list can only give one type of score at each epoch
-                    # (no different values in the same row of the list (probably just something I don't know how) )
-                    history_temp = np.zeros((len(score), epochs))
-                if verbose == 1:
-                    print(
-                        "epoch: ",
-                        epoch + 1,
-                        "/",
-                        epochs,
-                        ", train_accuracy: ",
-                        score[1],
-                        "sigma:",
-                        self.opt_instance.sigma,
-                    )
-
-                for i in range(len(score)):
-                    history_temp[i][epoch] = score[i]
-
-            # keras fit outputs history as dict with dict.values list type, so we convert numpy->list as well
-            history_temp = history_temp.tolist()
-            history = {}
-            for i in range(len(score)):
-                history[self.metrics_names[i]] = history_temp[i]
-
-            return returnvalues(self, history, epochs, validation_data)
-
+            result = self.perform_genetic_fit()
         else:
-            # if not is_gentic, let keras deal with the fit.
-            return super().fit(
+            result = super().fit(
                 x=x,
                 y=y,
                 validation_data=validation_data,
                 epochs=epochs,
                 verbose=verbose,
-                **kwargs
+                **kwargs,
             )
-
-    # Evaluate is done by keras
-    def evaluate(self, *args, **kwargs):
-        return super().evaluate(*args, **kwargs)
-
-
-class returnvalues:
-    def __init__(
-        self, model=None, history=None, epochs=None, validation_data=None, params=None
-    ):
-        self.history = history
-        self.epoch = [*range(epochs)]
-        self.model = model
-        self.validation_data = validation_data
-        self.params = params
+        return result
