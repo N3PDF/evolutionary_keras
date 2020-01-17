@@ -1,11 +1,13 @@
+""" Implementation of GA Model """
+
 from keras.models import Model
+import numpy as np
 import keras.optimizers as keras_opt
 import Evolutionary_Optimizers
-import numpy as np
 
 
 # Dictionary of the new evolutionay optimizers
-optimizers = {
+optimizer_dict = {
     "ga": Evolutionary_Optimizers.GA,
     "nga": Evolutionary_Optimizers.NGA,
     "cma": Evolutionary_Optimizers.CMA,
@@ -15,43 +17,47 @@ optimizers = {
 
 
 class GAModel(Model):
-
-    """  
-    GAModel forewards all tasks to keras if the optimizer is NOT genetic. In case the optimizer is genetic, fitting methods 
-    from Evolutionary_Optimizers.py are being used. 
+    """
+    GAModel forewards all tasks to keras if the optimizer is NOT genetic.
+    In case the optimizer is genetic, fitting methods
+    from Evolutionary_Optimizers.py are being used.
     """
 
-    # Initialization is not being at this point and hence superfluous
-    def __init__(self, input_tensor, output_tensor, **kwargs):
-        super(GAModel, self).__init__(input_tensor, output_tensor, **kwargs)
-
-    def compile(
-        self, optimizer, **kwargs
-    ):  # can we remove anything but optimizer from these inputs?
-
-        # Checks wether the optimizer is genetic or not and creates an optimizer instance in case a string type was given as input
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.is_genetic = False
-        # Checks (if the optimizer input is a string) whether it is in the 'optimizers' dictionary
-        if isinstance(optimizer, str):
-            optimizer = optimizer.lower()
-            if optimizer in optimizers.keys():
-                optimize = optimizers[optimizer]()
-                self.is_genetic = True
-        # Checks if the optimizer is an evolutionary strategy
-        elif isinstance(optimizer, Evolutionary_Optimizers.EvolutionaryStragegies):
-            optimize = optimizer
-            self.is_genetic = True
-        self.optimizer_instance = optimize
+        self.opt_instance = None
 
+    def parse_optimizer(self, optimizer):
+        """ Checks whether the optimizer is genetic
+        and creates and optimizer instance in case a string was given
+        as input """
+        # Checks (if the optimizer input is a string)
+        # and whether it is in the 'optimizers' dictionary
+        if isinstance(optimizer, str):
+            opt = optimizer_dict.get(optimizer.lower())
+            # And instanciate it with default values
+            optimizer = opt()
+        # Check whether the optimizer is an evolutionary
+        # optimizer
+        if isinstance(optimizer, Evolutionary_Optimizers.EvolutionaryStragegies):
+            self.is_genetic = True
+            self.opt_instance = optimizer
+            optimizer.prepare_during_compile(model=self)
+
+    def compile(self, optimizer, **kwargs):
+        """ Compile """
+        self.parse_optimizer(optimizer)
         # If the optimizer is genetic, compile using keras while setting a random (keras supported) gradient descent optimizer
         if self.is_genetic:
             super().compile(optimizer="rmsprop", **kwargs)
-            self.optimizer_instance.prepare_during_compile(model=self)
         else:
             super().compile(optimizer=optimizer, **kwargs)
 
-    # If the optimizer is genetic the fitting precedure consists of executing run_stop for the given number of epochs
     def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, **kwargs):
+        """ If the optimizer is genetic, the fitting
+        procedure consists on executing `run_stop` for the given
+        number of epochs """
         if self.is_genetic:
             # Validation data is currently not being used!!
             if validation_data is not None:
@@ -59,7 +65,7 @@ class GAModel(Model):
                 y_val = validation_data[1]
 
             for epoch in range(epochs):
-                score, best_mutant = self.optimizer_instance.run_step(
+                score, best_mutant = self.opt_instance.run_step(
                     model=self, x=x, y=y
                 )
                 self.set_weights(best_mutant)
@@ -77,7 +83,7 @@ class GAModel(Model):
                         ", train_accuracy: ",
                         score[1],
                         "sigma:",
-                        self.optimizer_instance.sigma,
+                        self.opt_instance.sigma,
                     )
 
                 for i in range(len(score)):
