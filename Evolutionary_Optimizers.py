@@ -21,6 +21,21 @@ def get_number_nodes(layer):
         nodes = sum(output_nodes)
     return nodes
 
+def parse_eval(loss):
+    """ Parses the result from `model.evaluate`, which sometimes
+    comes as a list and sometimes comes as one single float
+    Returns
+    -------
+        `loss` : loss as a float
+    """
+    try:
+        loss = loss[0]
+    except TypeError as e:
+        # If the output was a number then it is ok
+        if not isinstance(loss, (float, int)):
+            raise e
+    return loss
+
 
 class EvolutionaryStrategies(Optimizer):
     """ Parent class for all Evolutionary Strategies
@@ -37,7 +52,6 @@ class EvolutionaryStrategies(Optimizer):
         shape = None
         return shape
 
-
     def on_compile(self, model):
         """ Function to be called by the model during compile time.
         Register the model `model` with the optimizer.
@@ -46,7 +60,18 @@ class EvolutionaryStrategies(Optimizer):
         self.model = model
         self.shape = self.get_shape()
 
+    @abstractmethod
+    def run_step(self, x, y):
+        """ Performs a step of the optimizer.
+        Returns the current score of the best mutant
+        and its new weights """
+        score = 0
+        selected_parent = None
+        return score, selected_parent
+
+
     def get_updates(self, loss, params):
+        """ Capture Keras get_updates method """
         pass
 
 
@@ -78,6 +103,7 @@ class NGA(EvolutionaryStrategies):
         self.has_init_variables = False
         self.sigma = sigma_original
         self.n_nodes = 0
+        self.n_generations = 1
 
         super(NGA, self).__init__(*args, **kwargs)
 
@@ -106,57 +132,56 @@ class NGA(EvolutionaryStrategies):
         self.non_training_weights = self.model.non_trainable_weights
         return weight_shapes
        
-    def create_mutants(self, shape, change_both_weights_and_biases_of_a_node=True):
+    def create_mutants(self, change_both_wb=True):
         """
-        Takes a single mutant as input and creates a new generation by performing random nodal mutations.
-        To change node and corresponding weights with probability, set change_both_weights_and_biases_of_a_node=True if change_both_weights_and_biases_of_a_node=False, either a node or the biases of a node will be mutated. """
-        model = self.model
-        mutant = []
-        mutant.append(model.get_weights())
-        for k in range(self.population_size):
+        Takes the current state of the network as the starting mutant and creates a new generation
+        by performing random nodal mutations.
+        By default, from a layer dense layer, only weights or biases will be mutated.
+        In order to mutate both set `change_both_wb` to True
+        """
+        # TODO here we should get only trainable weights
+        parent_mutant = self.model.get_weights()
+        # Find out how many nodes are we mutating
+        nodes_to_mutate = int(self.n_nodes * self.mutation_rate)
 
-            mutant.append(deepcopy(mutant[0]))
+        mutants = [parent_mutant]
+        for _ in range(self.population_size):
+            mutant = deepcopy(parent_mutant)
             mutated_nodes = []
-
-            # select random nodes to mutate
-            for i in range(math.floor(self.n_nodes * self.mutation_rate)):
-                mutated_nodes.append(math.floor(self.n_nodes * np.random.rand()))
+            # Select random nodes to mutate for this mutant
+            # TODO seed numpy random at initialization time
+            # Note that we might mutate the same node several times for the same mutant
+            for _ in range(nodes_to_mutate):
+                mutated_nodes.append( np.random.randint(self.n_nodes) )
 
             for i in mutated_nodes:
-
-                # find the nodes in their respective layers
+                # Find the nodes in their respective layers
                 count_nodes = 0
                 layer = 1
-                # HERE WEIGHT-BIAS-WEIGHT-BIAS IS ALSO ASSUMED BY THE +=2
+                # TODO HERE WEIGHT-BIAS-WEIGHT-BIAS IS ALSO ASSUMED BY THE +=2
+                # Once again, this is related to the previous TODO
                 while count_nodes <= i:
-                    count_nodes += shape[layer][0]
+                    count_nodes += self.shape[layer][0]
                     layer += 2
                 layer -= 2
-                count_nodes -= shape[layer][0]
+                count_nodes -= self.shape[layer][0]
                 node_in_layer = i - count_nodes
 
-                # mutate weights and biases by adding values from random distrubution
-                sigma_eff = self.sigma * (self.N_generations ** (-np.random.rand()))
-                if change_both_weights_and_biases_of_a_node:
-                    randn_mutation = sigma_eff * np.random.randn(shape[layer - 1][0])
-                    mutant[k + 1][layer - 1][:, node_in_layer] += randn_mutation
-                    mutant[k + 1][layer][node_in_layer] += sigma_eff * np.random.randn()
+                # Mutate weights and biases by adding values from random distributions
+                sigma_eff = self.sigma * (self.n_generations ** (-np.random.rand()))
+                if change_both_wb:
+                    randn_mutation = sigma_eff * np.random.randn(self.shape[layer - 1][0])
+                    mutant[layer - 1][:, node_in_layer] += randn_mutation
+                    mutant[layer][node_in_layer] += sigma_eff * np.random.randn()
                 else:
-                    bias_or_weights = math.floor(2 * np.random.rand())
-                    if bias_or_weights == 0:
-                        randn_mutation = sigma_eff * np.random.randn(
-                            shape[layer - 1][0]
-                        )
-                        mutant[k + 1][layer - 1][:, node_in_layer] += randn_mutation
+                    change_weight = np.random.randint(2, dtype='bool')
+                    if change_weight:
+                        randn_mutation = sigma_eff * np.random.randn(self.shape[layer - 1][0])
+                        mutant[layer - 1][:, node_in_layer] += randn_mutation
                     else:
-                        mutant[k + 1][layer][node_in_layer] += (
-                            sigma_eff * np.random.randn()
-                        )
-
-                # add non_training weights such that 'mutant' now parametrizes the entire model
-                mutant[k + 1].append(self.non_training_weights)
-
-        return mutant
+                        mutant[layer][node_in_layer] += (sigma_eff * np.random.randn())
+            mutants.append(mutant)
+        return mutants
 
     # RESULTS DO IMPROVE WHEN TRAINING BASED ON SELECTING HIGHEST ACCURACY, BUT NOT IF SELECTION IS BASED ON LOWEST LOSS
     # ALSO, THE ACCURACY CHANGES AFTER THE WEIGHTS OF THE BEST PERFROMING MODEL ARE LOADED INTO THE MODEL AGAIN, IS THERE
@@ -164,50 +189,50 @@ class NGA(EvolutionaryStrategies):
     # METHOD TO SAVE AND LOAD MODELS?
 
     # Evalutates all mutantants of a generationa and ouptus loss and the single best performing mutant of the generation
-    def evaluate_mutants(
-        self, mutant, x=None, y=None,
-    ):
-        model = self.model
+    def evaluate_mutants(self, mutants, x=None, y=None, verbose = 0):
+        """ Evaluates all mutants of a generation and select the best one.
 
-        # most_accurate_model=0 corresponds to setting the input model as most accurate
-        most_accurate_model = 0
-        for i in range(self.population_size + 1):
-            # replace weights of the input model by weights generated using the create_mutants function
-            model.set_weights(mutant[i])
-            output = model.evaluate(verbose=False, x=x, y=y)
-            if self.loss_is_list_type:
-                loss_new = output[0]
-            else:
-                loss_new = output
+        Parameters
+        ----------
+            `mutants`: list of all mutants for this generation
 
-            if loss_new < self.loss:
-                self.loss = loss_new
-                most_accurate_model = i
+        Returns
+        -------
+            `loss`: loss of the best performing mutant
+            `best_mutant`: best performing mutant
+        """
+        best_loss = self.model.evaluate(x=x, y=y, verbose=verbose)
+        best_loss_val = parse_eval(best_loss)
+        best_mutant = mutants[0]
+        new_mutant = False
+        for mutant in mutants[1:]:
+            # replace weights of the input model by weights generated
+            # TODO related to the other todos, eventually this will have to be done
+            # in a per-layer basis
+            self.model.set_weights(mutant)
+            loss = self.model.evaluate(x=x, y=y, verbose=False)
+            loss_val = parse_eval(loss)
 
-        # if none of the mutants have performed better on the training data than the original mutant, reduce sigma
-        if most_accurate_model == 0:
-            self.N_generations += 1
-            self.sigma = self.sigma_original / self.N_generations
-
-        return output, mutant[most_accurate_model]
+            if loss_val < best_loss_val:
+                best_loss_val = loss_val
+                best_loss = loss
+                best_mutant = mutant
+                new_mutant = True
+        
+        # if none of the mutants have performed better on the training data than the original mutant
+        # reduce sigma
+        if not new_mutant:
+            self.n_generations += 1
+            self.sigma = self.sigma_original / self.n_generations
+        return best_loss, best_mutant
 
     # --------------------- only the functions below are called in GAModel ---------------------
-
     # Collects the functions defined above to form the fitting step that is to be repeated for a number of epochs
     def run_step(self, x, y):
         """ Wrapper to run one single step of the optimizer"""
-
         # Initialize training paramters
-        if not self.has_init_variables:
-            self.N_generations = 1
-            self.loss = self.model.evaluate(x=x, y=y, verbose=0)
-            if isinstance(self.loss, list):
-                self.loss = self.loss[0]
-                self.loss_is_list_type = True
-            self.has_init_variables = True
-
-        mutant = self.create_mutants(shape=self.shape)
-        score, selected_parent = self.evaluate_mutants(mutant=mutant, x=x, y=y)
+        mutants = self.create_mutants()
+        score, selected_parent = self.evaluate_mutants(mutants, x=x, y=y)
 
         return score, selected_parent
 

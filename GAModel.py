@@ -73,7 +73,7 @@ class GAModel(Model):
         for epoch in range(epochs):
             # Generate the best mutant
             score, best_mutant = self.opt_instance.run_step(x=x, y=y)
-            # Make the best mutant the current one
+            # Ensure the best mutant is the current one
             self.set_weights(best_mutant)
             if verbose == 1:
                 loss = score[0]
