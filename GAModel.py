@@ -36,7 +36,7 @@ class GAModel(Model):
         as input """
         # Checks (if the optimizer input is a string)
         # and whether it is in the 'optimizers' dictionary
-        if isinstance(optimizer, str):
+        if isinstance(optimizer, str) and optimizer in optimizer_dict.keys():
             opt = optimizer_dict.get(optimizer.lower())
             # And instanciate it with default values
             optimizer = opt()
@@ -79,7 +79,7 @@ class GAModel(Model):
             if verbose == 1:
                 loss = score[0]
                 sigma = self.opt_instance.sigma
-                information = f" > epoch: {epoch+1}/{epochs}, {loss=} {sigma=}"
+                information = f" > epoch: {epoch+1}/{epochs}, {loss} {sigma}"
                 log.info(information)
             # Fill keras history
             history_data = dict(zip(metricas, score))
@@ -91,7 +91,13 @@ class GAModel(Model):
         procedure consists on executing `run_step` for the given
         number of epochs """
         if self.is_genetic:
-            result = self.perform_genetic_fit()
+            result = self.perform_genetic_fit(
+                x=x,
+                y=y,
+                epochs=epochs,
+                verbose=verbose,
+                validation_data=validation_data,
+            )
         else:
             result = super().fit(
                 x=x,
