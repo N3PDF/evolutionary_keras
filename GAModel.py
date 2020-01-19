@@ -1,101 +1,104 @@
-from keras.models import Model 
-import keras.optimizers as keras_opt
-import Evolutionary_Optimizers 
-import numpy as np
+""" Implementation of GA Model """
 
+import logging
+from keras.models import Model
+from keras.callbacks.callbacks import History
+import Evolutionary_Optimizers
 
-# Dictionary of the new evolutionay optimizers 
-optimizers={
-    "ga" : Evolutionary_Optimizers.GA,
-    "nga" : Evolutionary_Optimizers.NGA,
-    "cma" : Evolutionary_Optimizers.CMA,
-    "bfgs" : Evolutionary_Optimizers.BFGS,
-    "ceressolver" : Evolutionary_Optimizers.CeresSolver
+log = logging.getLogger(__name__)
+
+# Dictionary of the new evolutionay optimizers
+optimizer_dict = {
+    "ga": Evolutionary_Optimizers.GA,
+    "nga": Evolutionary_Optimizers.NGA,
+    "cma": Evolutionary_Optimizers.CMA,
+    "bfgs": Evolutionary_Optimizers.BFGS,
+    "ceressolver": Evolutionary_Optimizers.CeresSolver,
 }
 
 
 class GAModel(Model):
-
-
-    """  
-    GAModel forewards all tasks to keras if the optimizer is NOT genetic. In case the optimizer is genetic, fitting methods 
-    from Evolutionary_Optimizers.py are being used. 
+    """
+    GAModel forewards all tasks to keras if the optimizer is NOT genetic.
+    In case the optimizer is genetic, fitting methods
+    from Evolutionary_Optimizers.py are being used.
     """
 
-
-    # Initialization is not being at this point and hence superfluous 
-    def __init__(self, input_tensor, output_tensor, **kwargs):
-        super(GAModel, self).__init__(input_tensor, output_tensor, **kwargs)
-
-    
-    def compile(self, optimizer, **kwargs): # can we remove anything but optimizer from these inputs?
-        
-        # Checks wether the optimizer is genetic or not and creates an optimizer instance in case a string type was given as input
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.is_genetic = False
-        # Checks (if the optimizer input is a string) whether it is in the 'optimizers' dictionary
+        self.opt_instance = None
+        self.history = History()
+
+    def parse_optimizer(self, optimizer):
+        """ Checks whether the optimizer is genetic
+        and creates and optimizer instance in case a string was given
+        as input """
+        # Checks (if the optimizer input is a string)
+        # and whether it is in the 'optimizers' dictionary
         if isinstance(optimizer, str):
-            optimizer = optimizer.lower()
-            if optimizer in optimizers.keys():
-                optimize = optimizers[optimizer]()
-                self.is_genetic = True
-        # Checks if the optimizer is an evolutionary strategy    
-        elif isinstance(optimizer, Evolutionary_Optimizers.EvolutionaryStragegies):
-            optimize = optimizer
+            opt = optimizer_dict.get(optimizer.lower())
+            # And instanciate it with default values
+            optimizer = opt()
+        # Check whether the optimizer is an evolutionary
+        # optimizer
+        if isinstance(optimizer, Evolutionary_Optimizers.EvolutionaryStrategies):
             self.is_genetic = True
-        self.optimizer_instance = optimize
+            self.opt_instance = optimizer
+            optimizer.on_compile(self)
 
-        # If the optimizer is genetic, compile using keras while setting a random (keras supported) gradient descent optimizer
+    def compile(self, optimizer, **kwargs):
+        """ Compile """
+        self.parse_optimizer(optimizer)
+        # If the optimizer is genetic,
+        # compile using keras while setting a random (keras supported) gradient descent optimizer
         if self.is_genetic:
-            super().compile(optimizer='rmsprop', **kwargs)
-            self.optimizer_instance.prepare_during_compile(model = self)
-        else: 
+            super().compile(optimizer="rmsprop", **kwargs)
+        else:
             super().compile(optimizer=optimizer, **kwargs)
-    
-   
-    # If the optimizer is genetic the fitting precedure consists of executing run_stop for the given number of epochs
-    def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose = 0, **kwargs):
+
+    def perform_genetic_fit(
+        self, x=None, y=None, epochs=1, verbose=0, validation_data=None
+    ):
+        # Prepare the history for the initial epoch
+        self.history.on_train_begin()
+        # Validation data is currently not being used!!
+        if validation_data is not None:
+            log.warning(
+                "Validation data is not used at the moment by the Genetic Algorithms!!"
+            )
+        #             x_val = validation_data[0]
+        #             y_val = validation_data[1]
+
+        metricas = self.metrics_names
+        for epoch in range(epochs):
+            # Generate the best mutant
+            score, best_mutant = self.opt_instance.run_step(x=x, y=y)
+            # Ensure the best mutant is the current one
+            self.set_weights(best_mutant)
+            if verbose == 1:
+                loss = score[0]
+                sigma = self.opt_instance.sigma
+                information = f" > epoch: {epoch+1}/{epochs}, {loss=} {sigma=}"
+                log.info(information)
+            # Fill keras history
+            history_data = dict(zip(metricas, score))
+            self.history.on_epoch_end(epoch, history_data)
+        return self.history
+
+    def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, **kwargs):
+        """ If the optimizer is genetic, the fitting
+        procedure consists on executing `run_step` for the given
+        number of epochs """
         if self.is_genetic:
-            # Validation data is currently not being used!!
-            if validation_data is not None:
-                x_val = validation_data[0]
-                y_val = validation_data[1]
-
-            for epoch in range(epochs):
-                score, best_mutant = self.optimizer_instance.run_step( model = self, x=x, y=y )
-                self.set_weights(best_mutant)
-
-                if epoch == 0:
-                    # use numpy array becuase list can only give one type of score at each epoch 
-                    # (no different values in the same row of the list (probably just something I don't know how) )
-                    history_temp = np.zeros(( len(score), epochs ))
-                if verbose == 1:
-                    print('epoch: ', epoch+1, '/', epochs, ', train_accuracy: ', score[1], 'sigma:', self.optimizer_instance.sigma ) 
-                
-                for i in range( len(score) ):
-                    history_temp[i][epoch] = score[i]
-
-            # keras fit outputs history as dict with dict.values list type, so we convert numpy->list as well
-            history_temp = history_temp.tolist()
-            history = {}
-            for i in range ( len(score) ):
-                history[ self.metrics_names[i] ] = history_temp[i] 
-            
-            return returnvalues(self, history, epochs, validation_data)
-          
-        else: 
-            # if not is_gentic, let keras deal with the fit.
-            return super().fit(x=x, y=y, validation_data=validation_data, epochs=epochs, verbose=verbose, **kwargs)
-
-
-    # Evaluate is done by keras
-    def evaluate(self, *args, **kwargs):
-        return super().evaluate(*args, **kwargs)
-
-
-class returnvalues:
-    def __init__(self, model=None, history=None, epochs=None, validation_data=None, params=None):
-        self.history = history
-        self.epoch = [*range(epochs)]
-        self.model = model
-        self.validation_data = validation_data
-        self.params = params
+            result = self.perform_genetic_fit()
+        else:
+            result = super().fit(
+                x=x,
+                y=y,
+                validation_data=validation_data,
+                epochs=epochs,
+                verbose=verbose,
+                **kwargs,
+            )
+        return result
