@@ -16,3 +16,4 @@ This project currenlty supports a Nodal Genetic Algorithm (NGA) implementation f
 - [ ] Add CeresSolver
 - [ ] Seed numpy
 - [ ] Make mutant genarator of NGA not depend on (weight-bias)<sup>n</sup> model structure 
+- [ ] Deal with multiple input nodes (nodes as defined in keras docs:https://keras.io/getting-started/functional-api-guide/#the-concept-of-layer-node)
