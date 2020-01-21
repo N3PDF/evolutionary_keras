@@ -1,8 +1,6 @@
 # evolutionary_keras
 
-*A GeneticAlgorithm implementation for Keras*
-
-This project currenlty supports a Nodal Genetic Algorithm (NGA) implementation for Keras.
+This is a Nodal Genetic Algorithm (NGA) implementation for Keras.
 
 ## Table of Contents
  * Minimizers
