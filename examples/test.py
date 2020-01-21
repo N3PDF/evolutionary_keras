@@ -12,9 +12,9 @@ from keras.datasets import mnist
 from keras import backend as K
 from keras.layers import Dense, Input, Flatten
 
-from KerasGA.GAModel import GAModel
+from evolutionary_keras.GAModel import GAModel
 # from cmaes import CMA
-import KerasGA.Evolutionary_Optimizers
+import evolutionary_keras.Evolutionary_Optimizers
 
 
 batch_size = 128
