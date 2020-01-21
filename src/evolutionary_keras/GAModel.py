@@ -3,7 +3,7 @@
 import logging
 from keras.models import Model
 from keras.callbacks.callbacks import History
-import KerasGA.Evolutionary_Optimizers as Evolutionary_Optimizers
+import evolutionary_keras.Evolutionary_Optimizers as Evolutionary_Optimizers
 
 log = logging.getLogger(__name__)
 

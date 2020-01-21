@@ -1,4 +1,4 @@
-# KerasGA
+# evolutionary_keras
 
 *A GeneticAlgorithm implementation for Keras*
 
