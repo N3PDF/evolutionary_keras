@@ -17,9 +17,9 @@ optimizer_dict = {
 }
 
 
-class Evolutionary_Model(Model):
+class EvolModel(Model):
     """
-    Evolutionary_Model forewards all tasks to keras if the optimizer is NOT genetic.
+    EvolModel forewards all tasks to keras if the optimizer is NOT genetic.
     In case the optimizer is genetic, fitting methods
     from Evolutionary_Optimizers.py are being used.
     """

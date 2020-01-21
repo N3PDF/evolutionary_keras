@@ -12,7 +12,7 @@ from keras.datasets import mnist
 from keras import backend as K
 from keras.layers import Dense, Input, Flatten
 
-from evolutionary_keras.Evolutionary_Model import Evolutionary_Model
+from evolutionary_keras.EvolModel import EvolModel
 # from cmaes import CMA
 import evolutionary_keras.Evolutionary_Optimizers
 
@@ -56,7 +56,7 @@ dense = Dense(64, activation="relu")(flatten)
 dense = Dense(64, activation="relu")(dense)
 prediction = Dense(10, activation="softmax")(dense)
 
-model = Evolutionary_Model(input_tensor=inputs, output_tensor=prediction)
+model = EvolModel(input_tensor=inputs, output_tensor=prediction)
 
 myopt = Evolutionary_Optimizers.NGA(population_size=2, sigma_original=15)
 model.compile(optimizer="nga", loss="categorical_crossentropy", metrics=["accuracy"])

@@ -230,7 +230,7 @@ class NGA(EvolutionaryStrategies):
             self.sigma = self.sigma_original / self.n_generations
         return best_loss, best_mutant
 
-    # --------------------- only the functions below are called in Evolutionary_Model ---------------------
+    # --------------------- only the functions below are called in EvolModel ---------------------
     def run_step(self, x, y):
         """ Wrapper to run one single step of the optimizer"""
         # Initialize training paramters
