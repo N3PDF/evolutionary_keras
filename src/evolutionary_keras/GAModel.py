@@ -17,9 +17,9 @@ optimizer_dict = {
 }
 
 
-class GAModel(Model):
+class Evolutionary_Model(Model):
     """
-    GAModel forewards all tasks to keras if the optimizer is NOT genetic.
+    Evolutionary_Model forewards all tasks to keras if the optimizer is NOT genetic.
     In case the optimizer is genetic, fitting methods
     from Evolutionary_Optimizers.py are being used.
     """
