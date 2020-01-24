@@ -15,7 +15,7 @@ evolutionary_keras.EvolModel module
 evolutionary_keras.Evolutionary_Optimizers module
 ----------------------------
 
-.. automodule:: evolutionary_keras.Evolutionary_Optimizers
+.. automodule:: evolutionary_keras.optimizers
    :members:
    :undoc-members:
    :show-inheritance:
