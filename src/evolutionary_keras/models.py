@@ -47,7 +47,7 @@ class EvolModel(Model):
             self.opt_instance = optimizer
             optimizer.on_compile(self)
 
-    def compile(self, optimizer, **kwargs):
+    def compile(self, optimizer="rmsprop", **kwargs):
         """ Compile """
         self.parse_optimizer(optimizer)
         # If the optimizer is genetic,

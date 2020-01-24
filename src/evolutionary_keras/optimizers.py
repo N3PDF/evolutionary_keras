@@ -63,9 +63,12 @@ class NGA(EvolutionaryStrategies):
 
     Parameters
     ----------
-        `sigma_original`:
-        `population_size`:
-        `mutation_rate`:
+        `sigma_original`: int
+            Allows adjusting the original sigma
+        `population_size`: int
+            Number of mutants to be generated per iteration
+        `mutation_rate`: float
+            Mutation rate
     """
 
     # In case the user wants to adjust sigma_original
