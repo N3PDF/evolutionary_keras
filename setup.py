@@ -11,6 +11,8 @@ setup(
         install_requires=[
             'numpy',
             'keras',
+            'sphinx_rtd_theme',
+            'recommonmark',
             ],
         python_requires='>=3.6'
         )

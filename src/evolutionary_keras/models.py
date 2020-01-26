@@ -3,7 +3,7 @@
 import logging
 from keras.models import Model
 from keras.callbacks.callbacks import History
-import evolutionary_keras.Evolutionary_Optimizers as Evolutionary_Optimizers
+import evolutionary_keras.optimizers as Evolutionary_Optimizers
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class EvolModel(Model):
             self.opt_instance = optimizer
             optimizer.on_compile(self)
 
-    def compile(self, optimizer, **kwargs):
+    def compile(self, optimizer="rmsprop", **kwargs):
         """ Compile """
         self.parse_optimizer(optimizer)
         # If the optimizer is genetic,
