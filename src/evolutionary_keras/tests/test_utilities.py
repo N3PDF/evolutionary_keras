@@ -9,7 +9,7 @@ def test_parse_eval():
     # There are two situations, get a list or get a float
     float_mode = 3.0
     list_mode = [float_mode]
-    assert float_mode == parse_eval(list_model)
+    assert float_mode == parse_eval(list_mode)
     assert float_mode == parse_eval(float_mode)
 
 def test_get_number_nodes():
