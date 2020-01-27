@@ -9,9 +9,6 @@ from keras.optimizers import Optimizer
 from evolutionary_keras.utilities import get_number_nodes, parse_eval
 
 
-
-
-
 class EvolutionaryStrategies(Optimizer):
     """ Parent class for all Evolutionary Strategies
     """
