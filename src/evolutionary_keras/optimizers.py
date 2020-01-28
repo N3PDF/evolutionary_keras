@@ -7,6 +7,7 @@ from copy import deepcopy
 import numpy as np
 from keras.optimizers import Optimizer
 from evolutionary_keras.utilities import get_number_nodes, parse_eval
+from keras.layers import Dense
 
 
 class EvolutionaryStrategies(Optimizer):
@@ -101,6 +102,17 @@ class NGA(EvolutionaryStrategies):
         # TODO: eventually we should save here a reference to the layer and their
         # corresponding weights, since the nodes are the output of the layer
         # and the weights the corresponding to that layer
+
+        for layer in self.model.layers:
+            if layer.trainable_weights != []:
+                if isinstance(layer, Dense) != True:
+                    raise ValueError(
+                        """The funcionality of the NGA algorithm is based on the mutation 
+                        of weights and biases which correspond to a node. The current 
+                        model appears to have trainable layers that are not of type 'Dense', 
+                        and hence are not well suited for minimization using the NGA algorithm"""
+                    )
+
         for layer in self.model.layers:
             self.n_nodes += get_number_nodes(layer)
         # TODO related to previous TODO: non trianable weights should not be important
