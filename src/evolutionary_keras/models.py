@@ -4,6 +4,7 @@ import logging
 from keras.models import Model
 from keras.callbacks.callbacks import History
 import evolutionary_keras.optimizers as Evolutionary_Optimizers
+from evolutionary_keras.utilities import parse_eval
 
 log = logging.getLogger(__name__)
 
@@ -15,7 +16,6 @@ optimizer_dict = {
     "bfgs": Evolutionary_Optimizers.BFGS,
     "ceressolver": Evolutionary_Optimizers.CeresSolver,
 }
-
 
 class EvolModel(Model):
     """
@@ -77,12 +77,20 @@ class EvolModel(Model):
             # Ensure the best mutant is the current one
             self.set_weights(best_mutant)
             if verbose == 1:
-                loss = score[0]
+                loss = parse_eval(score)
                 sigma = self.opt_instance.sigma
                 information = f" > epoch: {epoch+1}/{epochs}, {loss} {sigma}"
                 log.info(information)
             # Fill keras history
-            history_data = dict(zip(metricas, score))
+            try:
+                history_data = dict(zip(metricas, score))
+            except TypeError as e:
+                # Maybe score was just one number, evil Keras
+                if parse_eval(score) == score:
+                    score = [score, score]
+                    history_data = dict(zip(metricas, score))
+                else:
+                    raise e
             self.history.on_epoch_end(epoch, history_data)
         return self.history
 
