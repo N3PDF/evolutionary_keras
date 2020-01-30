@@ -7,6 +7,7 @@ from copy import deepcopy
 import numpy as np
 from keras.optimizers import Optimizer
 from evolutionary_keras.utilities import get_number_nodes, parse_eval
+import tensorflow as tf
 
 
 class EvolutionaryStrategies(Optimizer):
@@ -216,7 +217,60 @@ class NGA(EvolutionaryStrategies):
 
 
 class CMA(EvolutionaryStrategies):
-    pass
+    def __init__(self, sigma_init=1, *args, **kwargs):
+        self.sigma_init = sigma_init
+        self.shape = None
+        self.length_flat_layer = None
+        super(CMA, self).__init__(*args, **kwargs)
+
+    def get_shape(self):
+        self.shape = [weight.shape.as_list() for weight in self.model.weights]
+        return self.shape
+
+    def weights_per_layer(self):
+        self.length_flat_layer = [0]
+        for layer in range(len(self.shape)):
+            flat_layer = tf.reshape(self.model.weights[layer],[-1])
+            self.length_flat_layer.append( len(flat_layer) )
+
+    def flatten(self):
+        weights = self.model.get_weights()
+        flattened_weights = []
+        for layer in range(len(weights)):
+            flattened_weights.append( tf.reshape(weights[layer], [-1]) )
+        flattened_weights = np.concatenate(flattened_weights)
+        return flattened_weights
+
+    def undo_flatten(self, flattened_weights):
+        new_weights = []
+        for i in range(len(self.shape)):
+            flat_layer = flattened_weights[self.length_flat_layer[i]:self.length_flat_layer[i]+self.length_flat_layer[i+1]]
+            new_weights.append(tf.reshape(flat_layer, self.shape[i]))
+        return new_weights
+
+
+    def run_step(self, x, y):
+        """ Wrapper to run one single step of the optimizer"""
+
+        self.weights_per_layer()
+
+        def minimizethis(flattened_weights):
+            weights = self.undo_flatten(flattened_weights)
+            self.model.set_weights(weights)
+            loss = self.model.evaluate(x=x, y=y, verbose=0)[0]
+            return loss
+
+        import cma
+        xopt, es = cma.fmin2(minimizethis, self.flatten(), self.sigma_init)
+
+        selected_parent = self.undo_flatten(xopt)
+
+        self.model.set_weights(selected_parent)
+        score = self.model.evaluate(x=x, y=x, verbose=0)
+        score = parse_eval(score)
+        
+        return score, selected_parent
+
 
 
 class BFGS(EvolutionaryStrategies):
