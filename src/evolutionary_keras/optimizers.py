@@ -230,24 +230,26 @@ class CMA(EvolutionaryStrategies):
     def weights_per_layer(self):
         self.length_flat_layer = [0]
         for layer in range(len(self.shape)):
-            flat_layer = tf.reshape(self.model.weights[layer],[-1])
-            self.length_flat_layer.append( len(flat_layer) )
+            flat_layer = tf.reshape(self.model.weights[layer], [-1])
+            self.length_flat_layer.append(len(flat_layer))
 
     def flatten(self):
         weights = self.model.get_weights()
         flattened_weights = []
         for layer in range(len(weights)):
-            flattened_weights.append( tf.reshape(weights[layer], [-1]) )
+            flattened_weights.append(tf.reshape(weights[layer], [-1]))
         flattened_weights = np.concatenate(flattened_weights)
         return flattened_weights
 
     def undo_flatten(self, flattened_weights):
         new_weights = []
         for i in range(len(self.shape)):
-            flat_layer = flattened_weights[self.length_flat_layer[i]:self.length_flat_layer[i]+self.length_flat_layer[i+1]]
+            flat_layer = flattened_weights[
+                self.length_flat_layer[i] : self.length_flat_layer[i]
+                + self.length_flat_layer[i + 1]
+            ]
             new_weights.append(tf.reshape(flat_layer, self.shape[i]))
         return new_weights
-
 
     def run_step(self, x, y):
         """ Wrapper to run one single step of the optimizer"""
@@ -261,6 +263,7 @@ class CMA(EvolutionaryStrategies):
             return loss
 
         import cma
+
         xopt, es = cma.fmin2(minimizethis, self.flatten(), self.sigma_init)
 
         selected_parent = self.undo_flatten(xopt)
@@ -268,9 +271,8 @@ class CMA(EvolutionaryStrategies):
         self.model.set_weights(selected_parent)
         score = self.model.evaluate(x=x, y=x, verbose=0)
         score = parse_eval(score)
-        
-        return score, selected_parent
 
+        return score, selected_parent
 
 
 class BFGS(EvolutionaryStrategies):
