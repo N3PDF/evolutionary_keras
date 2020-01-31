@@ -241,17 +241,23 @@ class CMA(EvolutionaryStrategies):
         self.shape = [weight.shape.as_list() for weight in self.model.weights]
         return self.shape
 
-    # weights_per_layer creates self.lengt_flat_layer which is a list conatining
-    # the numer of weights in each layer of the network
+    """ 
+    'weights_per_layer' creates 'self.lengt_flat_layer' which is a list conatining
+    the numer of weights in each layer of the network. 
+    """
     def weights_per_layer(self):
-        # the first values of self.length_flat_layer is set to 0 which is helpful
-        # in determining the range of weights in the function undo_flatten.
+        """
+        The first values of 'self.length_flat_layer' is set to 0 which is helpful
+        in determining the range of weights in the function 'undo_flatten'. 
+        """
         self.length_flat_layer = [0]
         for layer in range(len(self.shape)):
             flat_layer = np.reshape(self.model.weights[layer].numpy(), [-1])
             self.length_flat_layer.append(len(flat_layer))
 
-    # 'flatten' returns a 1 dimensional list of all weights in the keras model
+    """
+    'flatten' returns a 1 dimensional list of all weights in the keras model 
+    """
     def flatten(self):
         weights = self.model.get_weights()
         flattened_weights = []
@@ -260,8 +266,10 @@ class CMA(EvolutionaryStrategies):
         flattened_weights = np.concatenate(flattened_weights)
         return flattened_weights
 
-    # 'undo_flatten' does the inverse of 'flatten': it takes a 1 dimensional input
-    # and returns a weight structure that can be loaded into the model.
+    """ 
+    'undo_flatten' does the inverse of 'flatten': it takes a 1 dimensional input
+    and returns a weight structure that can be loaded into the model. 
+    """
     def undo_flatten(self, flattened_weights):
         new_weights = []
         for i in range(len(self.shape)):
@@ -272,30 +280,42 @@ class CMA(EvolutionaryStrategies):
             new_weights.append(np.reshape(flat_layer, self.shape[i]))
         return new_weights
 
-    # As one might have noticed, 'CMA' does not allow the user to set a number of
-    # epochs, as this is dealth with by 'cma'. The default 'epochs' in EvolModel
-    # is one, meaning 'run step' is only called once during training.
+    """     
+    As one might have noticed, 'CMA' does not allow the user to set a number of
+    epochs, as this is dealth with by 'cma'. The default 'epochs' in EvolModel
+    is one, meaning 'run step' is only called once during training. 
+    """
     def run_step(self, x, y):
         """ Wrapper to the optimizer"""
 
-        # Get the nubmer of weights in each keras layer
+        """ 
+        Get the nubmer of weights in each keras layer 
+        """
         self.weights_per_layer()
 
-        # The function that 'cma' aims to minimize
+        """ 
+        The function that 'cma' aims to minimize 
+        """
         def minimizethis(flattened_weights):
             weights = self.undo_flatten(flattened_weights)
             self.model.set_weights(weights)
             loss = parse_eval(self.model.evaluate(x=x, y=y, verbose=0))
             return loss
 
-        # Run the minimization and return the ultimatly selected 1 dimensional
-        # layer of weights 'xopt'.
+        """     
+        Run the minimization and return the ultimatly selected 1 dimensional
+        layer of weights 'xopt'. 
+        """
         xopt, es = cma.fmin2(minimizethis, self.flatten(), self.sigma_init)
 
-        # Transform 'xopt' to the models' weight shape.
+        """ 
+        Transform 'xopt' to the models' weight shape. 
+        """
         selected_parent = self.undo_flatten(xopt)
 
-        # Determine the ultimatly selected mutants' performance on the training data.
+        """ 
+        Determine the ultimatly selected mutants' performance on the training data. 
+        """
         self.model.set_weights(selected_parent)
         score = self.model.evaluate(x=x, y=x, verbose=0)
         score = parse_eval(score)
