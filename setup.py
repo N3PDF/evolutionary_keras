@@ -13,7 +13,6 @@ setup(
             'keras',
             'sphinx_rtd_theme',
             'recommonmark',
-            'tensorflow',
             'cma',
             ],
         python_requires='>=3.6'

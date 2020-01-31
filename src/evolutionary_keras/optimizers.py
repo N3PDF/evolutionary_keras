@@ -7,8 +7,7 @@ from copy import deepcopy
 import numpy as np
 from keras.optimizers import Optimizer
 from evolutionary_keras.utilities import get_number_nodes, parse_eval
-import tensorflow as tf
-
+import cma
 
 class EvolutionaryStrategies(Optimizer):
     """ Parent class for all Evolutionary Strategies
@@ -230,14 +229,14 @@ class CMA(EvolutionaryStrategies):
     def weights_per_layer(self):
         self.length_flat_layer = [0]
         for layer in range(len(self.shape)):
-            flat_layer = tf.reshape(self.model.weights[layer], [-1])
+            flat_layer = np.reshape(self.model.weights[layer].numpy(), [-1])
             self.length_flat_layer.append(len(flat_layer))
 
     def flatten(self):
         weights = self.model.get_weights()
         flattened_weights = []
         for layer in range(len(weights)):
-            flattened_weights.append(tf.reshape(weights[layer], [-1]))
+            flattened_weights.append(np.reshape(weights[layer], [-1]))
         flattened_weights = np.concatenate(flattened_weights)
         return flattened_weights
 
@@ -248,7 +247,7 @@ class CMA(EvolutionaryStrategies):
                 self.length_flat_layer[i] : self.length_flat_layer[i]
                 + self.length_flat_layer[i + 1]
             ]
-            new_weights.append(tf.reshape(flat_layer, self.shape[i]))
+            new_weights.append(np.reshape(flat_layer, self.shape[i]))
         return new_weights
 
     def run_step(self, x, y):
@@ -261,8 +260,6 @@ class CMA(EvolutionaryStrategies):
             self.model.set_weights(weights)
             loss = self.model.evaluate(x=x, y=y, verbose=0)[0]
             return loss
-
-        import cma
 
         xopt, es = cma.fmin2(minimizethis, self.flatten(), self.sigma_init)
 
