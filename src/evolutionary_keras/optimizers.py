@@ -235,6 +235,8 @@ class CMA(EvolutionaryStrategies):
         self.sigma_init = sigma_init
         self.shape = None
         self.length_flat_layer = None
+        self.weightscopy = None
+        self.trainable_weights_names = None
         super(CMA, self).__init__(*args, **kwargs)
 
     def get_shape(self):
@@ -249,13 +251,10 @@ class CMA(EvolutionaryStrategies):
         self.shape = []
         self.weightscopy = deepcopy(self.model.weights)
         remove_these_weights = []
-        self.restore_weights_here = []
         for i in range(len(self.model.weights)):
             weight = self.model.weights[i]
             if weight.name not in self.trainable_weights_names:
                 remove_these_weights.append(i)
-            else:
-                self.restore_weights_here.append(i)
         number_to_remove = len(remove_these_weights)
         for i in range(number_to_remove):
             del self.weightscopy[remove_these_weights[number_to_remove - 1 - i]]
