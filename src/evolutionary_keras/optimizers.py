@@ -242,12 +242,16 @@ class CMA(EvolutionaryStrategies):
         self.trainable_weights_names = [
             weights.name for weights in self.model.trainable_weights
         ]
+
+        if self.trainable_weights_names == []:
+            raise TypeError("The model does not have any trainable weights!")
+
         self.shape = []
         self.weightscopy = deepcopy(self.model.weights)
         remove_these_weights = []
         self.restore_weights_here = []
-        for i in range(len(self.weightscopy)):
-            weight = self.weightscopy[i]
+        for i in range(len(self.model.weights)):
+            weight = self.model.weights[i]
             if weight.name not in self.trainable_weights_names:
                 remove_these_weights.append(i)
             else:
