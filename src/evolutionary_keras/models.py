@@ -17,6 +17,7 @@ optimizer_dict = {
     "ceressolver": Evolutionary_Optimizers.CeresSolver,
 }
 
+
 class EvolModel(Model):
     """
     EvolModel forewards all tasks to keras if the optimizer is NOT genetic.
@@ -74,6 +75,10 @@ class EvolModel(Model):
         for epoch in range(epochs):
             # Generate the best mutant
             score, best_mutant = self.opt_instance.run_step(x=x, y=y)
+            # If the score is a dictionary, it is assumed that the optimizer created a history object
+            if isinstance(score, dict):
+                return score
+
             # Ensure the best mutant is the current one
             self.set_weights(best_mutant)
             if verbose == 1:

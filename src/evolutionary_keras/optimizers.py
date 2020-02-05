@@ -333,10 +333,21 @@ class CMA(EvolutionaryStrategies):
         The function that 'cma' aims to minimize 
         """
 
+        metricas = self.model.metrics_names
+
         def minimizethis(flattened_weights):
             weights = self.undo_flatten(flattened_weights)
             self.model.set_weights(weights)
-            loss = parse_eval(self.model.evaluate(x=x, y=y, verbose=0))
+            score = self.model.evaluate(x=x, y=y, verbose=0)
+            loss = parse_eval(score)
+            try:
+                history_data = dict(zip(metricas, score))
+            except TypeError as e:
+                if loss == score:
+                    score = [score, score]
+                    history_data = dict(zip(metricas, score))
+                else:
+                    raise e
             return loss
 
         """     
