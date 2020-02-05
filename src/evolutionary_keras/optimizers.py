@@ -238,13 +238,31 @@ class CMA(EvolutionaryStrategies):
         super(CMA, self).__init__(*args, **kwargs)
 
     def get_shape(self):
-        self.shape = [weight.shape.as_list() for weight in self.model.weights]
+        # we do all this to keep track of the position of the trainable weights
+        self.trainable_weights_names = [
+            weights.name for weights in self.model.trainable_weights
+        ]
+        self.shape = []
+        self.weightscopy = deepcopy(self.model.weights)
+        remove_these_weights = []
+        self.restore_weights_here = []
+        for i in range(len(self.weightscopy)):
+            weight = self.weightscopy[i]
+            if weight.name not in self.trainable_weights_names:
+                remove_these_weights.append(i)
+            else:
+                self.restore_weights_here.append(i)
+        number_to_remove = len(remove_these_weights)
+        for i in range(number_to_remove):
+            del self.weightscopy[remove_these_weights[number_to_remove - 1 - i]]
+        self.shape = [weight.shape.as_list() for weight in self.weightscopy]
         return self.shape
 
     """ 
     'weights_per_layer' creates 'self.lengt_flat_layer' which is a list conatining
     the numer of weights in each layer of the network. 
     """
+
     def weights_per_layer(self):
         """
         The first values of 'self.length_flat_layer' is set to 0 which is helpful
@@ -252,17 +270,18 @@ class CMA(EvolutionaryStrategies):
         """
         self.length_flat_layer = [0]
         for layer in range(len(self.shape)):
-            flat_layer = np.reshape(self.model.weights[layer].numpy(), [-1])
+            flat_layer = np.reshape(self.weightscopy[layer].numpy(), [-1])
             self.length_flat_layer.append(len(flat_layer))
 
     """
     'flatten' returns a 1 dimensional list of all weights in the keras model 
     """
+
     def flatten(self):
-        weights = self.model.get_weights()
+        weights = self.weightscopy
         flattened_weights = []
         for layer in range(len(weights)):
-            flattened_weights.append(np.reshape(weights[layer], [-1]))
+            flattened_weights.append(np.reshape(weights[layer].numpy(), [-1]))
         flattened_weights = np.concatenate(flattened_weights)
         return flattened_weights
 
@@ -270,6 +289,7 @@ class CMA(EvolutionaryStrategies):
     'undo_flatten' does the inverse of 'flatten': it takes a 1 dimensional input
     and returns a weight structure that can be loaded into the model. 
     """
+
     def undo_flatten(self, flattened_weights):
         new_weights = []
         for i in range(len(self.shape)):
@@ -278,13 +298,26 @@ class CMA(EvolutionaryStrategies):
                 + self.length_flat_layer[i + 1]
             ]
             new_weights.append(np.reshape(flat_layer, self.shape[i]))
-        return new_weights
+
+        ordered_names = [
+            weight.name for layer in self.model.layers for weight in layer.weights
+        ]
+
+        new_parent = deepcopy(self.model.get_weights())
+        i = 0
+        for weight in self.trainable_weights_names:
+            location_weight = ordered_names.index(weight)
+            new_parent[location_weight] = new_weights[i]
+            i += 1
+
+        return new_parent
 
     """     
     As one might have noticed, 'CMA' does not allow the user to set a number of
     epochs, as this is dealth with by 'cma'. The default 'epochs' in EvolModel
     is one, meaning 'run step' is only called once during training. 
     """
+
     def run_step(self, x, y):
         """ Wrapper to the optimizer"""
 
@@ -296,6 +329,7 @@ class CMA(EvolutionaryStrategies):
         """ 
         The function that 'cma' aims to minimize 
         """
+
         def minimizethis(flattened_weights):
             weights = self.undo_flatten(flattened_weights)
             self.model.set_weights(weights)
