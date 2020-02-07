@@ -20,9 +20,8 @@ optimizer_dict = {
 
 class EvolModel(Model):
     """
-    EvolModel forwards all tasks to keras if the optimizer is NOT genetic.
-    In case the optimizer is genetic, fitting methods
-    from Evolutionary_Optimizers.py are being used.
+    EvolModel forwards all tasks to keras if the optimizer is NOT genetic. In case the optimizer is
+    genetic, fitting methods from Evolutionary_Optimizers.py are being used.
     """
 
     def __init__(self, *args, **kwargs):
@@ -32,17 +31,16 @@ class EvolModel(Model):
         self.history = History()
 
     def parse_optimizer(self, optimizer):
-        """ Checks whether the optimizer is genetic
-        and creates and optimizer instance in case a string was given
-        as input """
-        # Checks (if the optimizer input is a string)
-        # and whether it is in the 'optimizers' dictionary
+        """ Checks whether the optimizer is genetic and creates and optimizer instance in case a
+        string was given as input.
+        """
+        # Checks (if the optimizer input is a string) and whether it is in the 'optimizers'
+        # dictionary
         if isinstance(optimizer, str) and optimizer in optimizer_dict.keys():
             opt = optimizer_dict.get(optimizer.lower())
             # And instanciate it with default values
             optimizer = opt()
-        # Check whether the optimizer is an evolutionary
-        # optimizer
+        # Check whether the optimizer is an evolutionary optimizer
         if isinstance(optimizer, Evolutionary_Optimizers.EvolutionaryStrategies):
             self.is_genetic = True
             self.opt_instance = optimizer
@@ -52,8 +50,8 @@ class EvolModel(Model):
     def compile(self, optimizer="rmsprop", **kwargs):
         """ Compile """
         self.parse_optimizer(optimizer)
-        # If the optimizer is genetic,
-        # compile using keras while setting a random (keras supported) gradient descent optimizer
+        # If the optimizer is genetic, compile using keras while setting a random (keras supported)
+        # gradient descent optimizer
         if self.is_genetic:
             super().compile(optimizer="rmsprop", **kwargs)
         else:
@@ -75,7 +73,7 @@ class EvolModel(Model):
         if isinstance(self.opt_instance, Evolutionary_Optimizers.CMA) and epochs != 1:
             epochs = 1
             log.warning(
-                "CMA determines the number of generations, set epochs will be ignored."
+                "The optimizer determines the number of generations, set epochs will be ignored."
             )
 
         metricas = self.metrics_names
@@ -103,9 +101,9 @@ class EvolModel(Model):
         return self.history
 
     def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, **kwargs):
-        """ If the optimizer is genetic, the fitting
-        procedure consists on executing `run_step` for the given
-        number of epochs """
+        """ If the optimizer is genetic, the fitting procedure consists on executing `run_step` for
+        the given number of epochs.
+        """
         if self.is_genetic:
             result = self.perform_genetic_fit(
                 x=x,
@@ -121,6 +119,6 @@ class EvolModel(Model):
                 validation_data=validation_data,
                 epochs=epochs,
                 verbose=verbose,
-                **kwargs,
+                #**kwargs,
             )
         return result

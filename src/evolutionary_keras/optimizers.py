@@ -72,7 +72,7 @@ class NGA(EvolutionaryStrategies):
     # In case the user wants to adjust sigma_original
     # population_size or mutation_rate parameters the NGA method has to be initiated
     def __init__(
-        self, *args, sigma_original=15, population_size=80, mutation_rate=0.05, **kwargs
+        self, sigma_original=15, population_size=80, mutation_rate=0.05, *args, **kwargs
     ):
         self.sigma_original = sigma_original
         self.population_size = population_size
@@ -163,12 +163,8 @@ class NGA(EvolutionaryStrategies):
             mutants.append(mutant)
         return mutants
 
-    # RESULTS DO IMPROVE WHEN TRAINING BASED ON SELECTING HIGHEST ACCURACY, BUT NOT IF SELECTION IS BASED ON LOWEST LOSS
-    # ALSO, THE ACCURACY CHANGES AFTER THE WEIGHTS OF THE BEST PERFROMING MODEL ARE LOADED INTO THE MODEL AGAIN, IS THERE
-    # SOME RANDOMIZATION DONE BY TENSORFLOW? BUT THE MODEL DOES NOT INCLUDE THINGS SUCH AS DROPOUT LAYER. SHOULD WE USE DIFFERENT
-    # METHOD TO SAVE AND LOAD MODELS?
-
-    # Evalutates all mutantants of a generationa and ouptus loss and the single best performing mutant of the generation
+    # Evalutates all mutantants of a generationa and ouptus loss and the single best performing
+    # mutant of the generation
     def evaluate_mutants(self, mutants, x=None, y=None, verbose=0):
         """ Evaluates all mutants of a generation and select the best one.
 
@@ -219,11 +215,11 @@ class NGA(EvolutionaryStrategies):
 class CMA(EvolutionaryStrategies):
     """
     From http://cma.gforge.inria.fr/:
-    "The CMA-ES (Covariance Matrix Adaptation Evolution Strategy) is an evolutionary algorithm for 
+    "The CMA-ES (Covariance Matrix Adaptation Evolution Strategy) is an evolutionary algorithm for
     difficult non-linear non-convex black-box optimisation problems in continuous domain."
     The work-horse of this class is the cma package developed and maintained by Nikolaus Hansen
-    (see https://pypi.org/project/cma/), this class allows for convenient implementation within 
-    the keras environment. 
+    (see https://pypi.org/project/cma/), this class allows for convenient implementation within
+    the keras environment.
 
     Parameters
     ----------
@@ -240,10 +236,15 @@ class CMA(EvolutionaryStrategies):
         *args,
         **kwargs
     ):
+        """
+        As one might have noticed, 'CMA' does not allow the user to set a number of epochs, as this
+        is dealth with by 'cma'. The default 'epochs' in EvolModel is one, meaning 'run step' is
+        only called once during training.
+        """
+
         self.sigma_init = sigma_init
         self.shape = None
         self.length_flat_layer = None
-        self.weightscopy = None
         self.trainable_weights_names = None
 
         self.options = {}
@@ -257,13 +258,12 @@ class CMA(EvolutionaryStrategies):
         super(CMA, self).__init__(*args, **kwargs)
 
     def on_compile(self, model):
-        """ Function to be called by the model during compile time.
-        Register the model `model` with the optimizer.
+        """ Function to be called by the model during compile time. Register the model `model` with
+        the optimizer.
         """
         # Here we can perform some checks as well
         self.model = model
         self.shape = self.get_shape()
-        self.model.epochs = 1
 
     def get_shape(self):
         # we do all this to keep track of the position of the trainable weights
@@ -274,113 +274,82 @@ class CMA(EvolutionaryStrategies):
         if self.trainable_weights_names == []:
             raise TypeError("The model does not have any trainable weights!")
 
-        self.shape = []
-        self.weightscopy = deepcopy(self.model.weights)
-        remove_these_weights = []
-        for i in range(len(self.model.weights)):
-            weight = self.model.weights[i]
-            if weight.name not in self.trainable_weights_names:
-                remove_these_weights.append(i)
-        number_to_remove = len(remove_these_weights)
-        for i in range(number_to_remove):
-            del self.weightscopy[remove_these_weights[number_to_remove - 1 - i]]
-        self.shape = [weight.shape.as_list() for weight in self.weightscopy]
+        self.shape = [weight.shape.as_list() for weight in self.model.trainable_weights]
         return self.shape
-
-    """ 
-    'weights_per_layer' creates 'self.lengt_flat_layer' which is a list conatining
-    the numer of weights in each layer of the network. 
-    """
 
     def weights_per_layer(self):
         """
-        The first values of 'self.length_flat_layer' is set to 0 which is helpful
-        in determining the range of weights in the function 'undo_flatten'. 
+        'weights_per_layer' creates 'self.lengt_flat_layer' which is a list conatining the numer of
+        weights in each layer of the network.
         """
-        self.length_flat_layer = [0]
-        for layer in range(len(self.shape)):
-            flat_layer = np.reshape(self.weightscopy[layer].numpy(), [-1])
-            self.length_flat_layer.append(len(flat_layer))
 
-    """
-    'flatten' returns a 1 dimensional list of all weights in the keras model 
-    """
+        # The first values of 'self.length_flat_layer' is set to 0 which is helpful in determining
+        # the range of weights in the function 'undo_flatten'.
+        self.length_flat_layer = [
+            len(np.reshape(weight.numpy(), [-1]))
+            for weight in self.model.trainable_weights
+        ]
+        self.length_flat_layer.insert(0, 0)
 
     def flatten(self):
-        weights = self.weightscopy
-        flattened_weights = []
-        for layer in range(len(weights)):
-            flattened_weights.append(np.reshape(weights[layer].numpy(), [-1]))
+        """
+        'flatten' returns a 1 dimensional list of all weights in the keras model.
+        """
+
+        flattened_weights = [
+            np.reshape(weight.numpy(), [-1]) for weight in self.model.trainable_weights
+        ]
         flattened_weights = np.concatenate(flattened_weights)
+
         return flattened_weights
 
-    """ 
-    'undo_flatten' does the inverse of 'flatten': it takes a 1 dimensional input
-    and returns a weight structure that can be loaded into the model. 
-    """
-
     def undo_flatten(self, flattened_weights):
+        """
+        'undo_flatten' does the inverse of 'flatten': it takes a 1 dimensional input and returns a
+        weight structure that can be loaded into the model.
+        """
         new_weights = []
-        for i in range(len(self.shape)):
+        for i, layer_shape in enumerate(self.shape):
             flat_layer = flattened_weights[
                 self.length_flat_layer[i] : self.length_flat_layer[i]
                 + self.length_flat_layer[i + 1]
             ]
-            new_weights.append(np.reshape(flat_layer, self.shape[i]))
+            new_weights.append(np.reshape(flat_layer, layer_shape))
 
         ordered_names = [
             weight.name for layer in self.model.layers for weight in layer.weights
         ]
 
         new_parent = deepcopy(self.model.get_weights())
-        i = 0
-        for weight in self.trainable_weights_names:
+        for i, weight in enumerate(self.trainable_weights_names):
             location_weight = ordered_names.index(weight)
             new_parent[location_weight] = new_weights[i]
-            i += 1
 
         return new_parent
-
-    """     
-    As one might have noticed, 'CMA' does not allow the user to set a number of
-    epochs, as this is dealth with by 'cma'. The default 'epochs' in EvolModel
-    is one, meaning 'run step' is only called once during training. 
-    """
 
     def run_step(self, x, y):
         """ Wrapper to the optimizer"""
 
-        """ 
-        Get the nubmer of weights in each keras layer 
-        """
+        # Get the nubmer of weights in each keras layer
         self.weights_per_layer()
 
-        """ 
-        The function that 'cma' aims to minimize 
-        """
-
+        # minimizethis is function that 'cma' aims to minimize
         def minimizethis(flattened_weights):
             weights = self.undo_flatten(flattened_weights)
             self.model.set_weights(weights)
             loss = parse_eval(self.model.evaluate(x=x, y=y, verbose=0))
             return loss
 
-        """     
-        Run the minimization and return the ultimatly selected 1 dimensional
-        layer of weights 'xopt'. 
-        """
-        xopt, es = cma.fmin2(
+        # Run the minimization and return the ultimatly selected 1 dimensional layer of weights
+        # 'xopt'.
+        xopt, _ = cma.fmin2(
             minimizethis, self.flatten(), self.sigma_init, options=self.options
         )
 
-        """ 
-        Transform 'xopt' to the models' weight shape. 
-        """
+        # Transform 'xopt' to the models' weight shape.
         selected_parent = self.undo_flatten(xopt)
 
-        """ 
-        Determine the ultimatly selected mutants' performance on the training data. 
-        """
+        # Determine the ultimatly selected mutants' performance on the training data.
         self.model.set_weights(selected_parent)
         score = parse_eval(self.model.evaluate(x=x, y=y, verbose=0))
         return score, selected_parent
