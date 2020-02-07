@@ -20,7 +20,7 @@ optimizer_dict = {
 
 class EvolModel(Model):
     """
-    EvolModel forewards all tasks to keras if the optimizer is NOT genetic.
+    EvolModel forwards all tasks to keras if the optimizer is NOT genetic.
     In case the optimizer is genetic, fitting methods
     from Evolutionary_Optimizers.py are being used.
     """
@@ -46,7 +46,8 @@ class EvolModel(Model):
         if isinstance(optimizer, Evolutionary_Optimizers.EvolutionaryStrategies):
             self.is_genetic = True
             self.opt_instance = optimizer
-            optimizer.on_compile(self)
+
+        optimizer.on_compile(self)
 
     def compile(self, optimizer="rmsprop", **kwargs):
         """ Compile """
@@ -71,20 +72,22 @@ class EvolModel(Model):
         #             x_val = validation_data[0]
         #             y_val = validation_data[1]
 
+        if isinstance(self.opt_instance, Evolutionary_Optimizers.CMA) and epochs != 1:
+            epochs = 1
+            log.warning(
+                "CMA determines the number of generations, set epochs will be ignored."
+            )
+
         metricas = self.metrics_names
         for epoch in range(epochs):
             # Generate the best mutant
             score, best_mutant = self.opt_instance.run_step(x=x, y=y)
-            # If the score is a dictionary, it is assumed that the optimizer created a history object
-            if isinstance(score, dict):
-                return score
 
             # Ensure the best mutant is the current one
             self.set_weights(best_mutant)
             if verbose == 1:
                 loss = parse_eval(score)
-                sigma = self.opt_instance.sigma
-                information = f" > epoch: {epoch+1}/{epochs}, {loss} {sigma}"
+                information = f" > epoch: {epoch+1}/{epochs}, {loss} "
                 log.info(information)
             # Fill keras history
             try:

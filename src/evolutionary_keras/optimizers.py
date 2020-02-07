@@ -231,13 +231,39 @@ class CMA(EvolutionaryStrategies):
             Allows adjusting the initial sigma
     """
 
-    def __init__(self, sigma_init=1, *args, **kwargs):
+    def __init__(
+        self,
+        sigma_init=1,
+        target_value=None,
+        population_size=None,
+        max_evaluations=None,
+        *args,
+        **kwargs
+    ):
         self.sigma_init = sigma_init
         self.shape = None
         self.length_flat_layer = None
         self.weightscopy = None
         self.trainable_weights_names = None
+
+        self.options = {}
+        if target_value:
+            self.options["ftarget"] = target_value
+        if population_size:
+            self.options["popsize"] = population_size
+        if max_evaluations:
+            self.options["maxfevals"] = max_evaluations
+
         super(CMA, self).__init__(*args, **kwargs)
+
+    def on_compile(self, model):
+        """ Function to be called by the model during compile time.
+        Register the model `model` with the optimizer.
+        """
+        # Here we can perform some checks as well
+        self.model = model
+        self.shape = self.get_shape()
+        self.model.epochs = 1
 
     def get_shape(self):
         # we do all this to keep track of the position of the trainable weights
@@ -333,28 +359,19 @@ class CMA(EvolutionaryStrategies):
         The function that 'cma' aims to minimize 
         """
 
-        metricas = self.model.metrics_names
-
         def minimizethis(flattened_weights):
             weights = self.undo_flatten(flattened_weights)
             self.model.set_weights(weights)
-            score = self.model.evaluate(x=x, y=y, verbose=0)
-            loss = parse_eval(score)
-            try:
-                history_data = dict(zip(metricas, score))
-            except TypeError as e:
-                if loss == score:
-                    score = [score, score]
-                    history_data = dict(zip(metricas, score))
-                else:
-                    raise e
+            loss = parse_eval(self.model.evaluate(x=x, y=y, verbose=0))
             return loss
 
         """     
         Run the minimization and return the ultimatly selected 1 dimensional
         layer of weights 'xopt'. 
         """
-        xopt, es = cma.fmin2(minimizethis, self.flatten(), self.sigma_init)
+        xopt, es = cma.fmin2(
+            minimizethis, self.flatten(), self.sigma_init, options=self.options
+        )
 
         """ 
         Transform 'xopt' to the models' weight shape. 
@@ -365,9 +382,7 @@ class CMA(EvolutionaryStrategies):
         Determine the ultimatly selected mutants' performance on the training data. 
         """
         self.model.set_weights(selected_parent)
-        score = self.model.evaluate(x=x, y=x, verbose=0)
-        score = parse_eval(score)
-
+        score = parse_eval(self.model.evaluate(x=x, y=y, verbose=0))
         return score, selected_parent
 
 
