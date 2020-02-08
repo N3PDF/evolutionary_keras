@@ -2,6 +2,7 @@
     This module contains different Evolutionary Optimizers
 """
 
+import shutil
 from abc import abstractmethod
 from copy import deepcopy
 import numpy as np
@@ -225,6 +226,12 @@ class CMA(EvolutionaryStrategies):
     ----------
         `sigma_init`: int
             Allows adjusting the initial sigma
+        `population_size`: int
+            Number of mutants to be generated per iteration
+        `target_value`: float
+            Stops the minimizer if the target loss is achieved
+        `max_evaluations`: int
+            Maximimum total number of mutants tested during optimization
     """
 
     def __init__(
@@ -345,6 +352,9 @@ class CMA(EvolutionaryStrategies):
         xopt, _ = cma.fmin2(
             minimizethis, self.flatten(), self.sigma_init, options=self.options
         )
+        # Probably there is some way to use cma withouth logging. For now however, we remove the
+        # folder after running the optimizer.
+        shutil.rmtree("./outcmaes")
 
         # Transform 'xopt' to the models' weight shape.
         selected_parent = self.undo_flatten(xopt)
