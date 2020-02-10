@@ -19,7 +19,6 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     classifiers=[
-        "License :: GPL License",
         "Programming Language :: Python",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Physics",
