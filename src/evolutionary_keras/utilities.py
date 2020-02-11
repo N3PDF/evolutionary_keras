@@ -29,3 +29,12 @@ def parse_eval(loss):
         if not isinstance(loss, (float, int)):
             raise e
     return loss
+
+
+def compatibility_numpy(weight):
+    try:
+        result = weight.numpy()
+    except NotImplementedError:
+        weight.read_vaue()
+        result = K.eval(weight.read_value())
+    return result

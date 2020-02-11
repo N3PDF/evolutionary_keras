@@ -7,9 +7,8 @@ from abc import abstractmethod
 from copy import deepcopy
 import numpy as np
 from keras.optimizers import Optimizer
-from evolutionary_keras.utilities import get_number_nodes, parse_eval
+from evolutionary_keras.utilities import get_number_nodes, parse_eval, compatibility_numpy
 import cma
-
 
 class EvolutionaryStrategies(Optimizer):
     """ Parent class for all Evolutionary Strategies
@@ -302,10 +301,17 @@ class CMA(EvolutionaryStrategies):
         """
         'flatten' returns a 1 dimensional list of all weights in the keras model.
         """
+        # The first values of 'self.length_flat_layer' is set to 0 which is helpful in determining
+        # the range of weights in the function 'undo_flatten'.
+        flattened_weights = []
+        self.length_flat_layer = []
+        self.length_flat_layer.append(0)
+        for weight in self.model.trainable_weights:
+            a = np.reshape(compatibility_numpy(weight), [-1])
+            flattened_weights.append(a)
+            self.length_flat_layer.append(len(a))
 
-        flattened_weights = [
-            np.reshape(weight.numpy(), [-1]) for weight in self.model.trainable_weights
-        ]
+
         flattened_weights = np.concatenate(flattened_weights)
 
         return flattened_weights
@@ -338,7 +344,7 @@ class CMA(EvolutionaryStrategies):
         """ Wrapper to the optimizer"""
 
         # Get the nubmer of weights in each keras layer
-        self.weights_per_layer()
+        x0 = self.flatten()
 
         # minimizethis is function that 'cma' aims to minimize
         def minimizethis(flattened_weights):
@@ -350,7 +356,7 @@ class CMA(EvolutionaryStrategies):
         # Run the minimization and return the ultimatly selected 1 dimensional layer of weights
         # 'xopt'.
         xopt, _ = cma.fmin2(
-            minimizethis, self.flatten(), self.sigma_init, options=self.options
+            minimizethis, x0, self.sigma_init, options=self.options
         )
         # Probably there is some way to use cma withouth logging. For now however, we remove the
         # folder after running the optimizer.
