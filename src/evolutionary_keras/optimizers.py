@@ -351,7 +351,6 @@ class CMA(EvolutionaryStrategies):
             weights = self.undo_flatten(flattened_weights)
             self.model.set_weights(weights)
             loss = parse_eval(self.model.evaluate(x=x, y=y, verbose=0))
-            import ipdb; ipdb.set_trace()
             return loss
 
         # Run the minimization and return the ultimatly selected 1 dimensional layer of weights
