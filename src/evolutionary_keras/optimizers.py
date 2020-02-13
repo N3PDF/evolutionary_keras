@@ -7,8 +7,13 @@ from abc import abstractmethod
 from copy import deepcopy
 import numpy as np
 from keras.optimizers import Optimizer
-from evolutionary_keras.utilities import get_number_nodes, parse_eval, compatibility_numpy
+from evolutionary_keras.utilities import (
+    get_number_nodes,
+    parse_eval,
+    compatibility_numpy,
+)
 import cma
+
 
 class EvolutionaryStrategies(Optimizer):
     """ Parent class for all Evolutionary Strategies
@@ -253,7 +258,7 @@ class CMA(EvolutionaryStrategies):
         self.length_flat_layer = None
         self.trainable_weights_names = None
 
-        self.options = {}
+        self.options = {"verb_log": 0, "verbose": 0, "verb_disp": 1000}
         if target_value:
             self.options["ftarget"] = target_value
         if population_size:
@@ -311,7 +316,6 @@ class CMA(EvolutionaryStrategies):
             flattened_weights.append(a)
             self.length_flat_layer.append(len(a))
 
-
         flattened_weights = np.concatenate(flattened_weights)
 
         return flattened_weights
@@ -355,12 +359,15 @@ class CMA(EvolutionaryStrategies):
 
         # Run the minimization and return the ultimatly selected 1 dimensional layer of weights
         # 'xopt'.
-        xopt, _ = cma.fmin2(
-            minimizethis, x0, self.sigma_init, options=self.options
+        xopt = (
+            cma.CMAEvolutionStrategy(x0, self.sigma_init, self.options)
+            .optimize(minimizethis)
+            .result[0]
         )
-        # Probably there is some way to use cma withouth logging. For now however, we remove the
-        # folder after running the optimizer.
-        shutil.rmtree("./outcmaes")
+
+        # xopt = cma.fmin(
+        #    minimizethis, x0, self.sigma_init, options=self.options
+        # )[0]
 
         # Transform 'xopt' to the models' weight shape.
         selected_parent = self.undo_flatten(xopt)
