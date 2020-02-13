@@ -66,7 +66,7 @@ class NGA(EvolutionaryStrategies):
 
     Parameters
     ----------
-        `sigma_original`: int
+        `sigma_init`: int
             Allows adjusting the original sigma
         `population_size`: int
             Number of mutants to be generated per iteration
@@ -74,15 +74,15 @@ class NGA(EvolutionaryStrategies):
             Mutation rate
     """
 
-    # In case the user wants to adjust sigma_original
+    # In case the user wants to adjust sigma_init
     # population_size or mutation_rate parameters the NGA method has to be initiated
     def __init__(
-        self, sigma_original=15, population_size=80, mutation_rate=0.05, *args, **kwargs
+        self, sigma_init=15, population_size=80, mutation_rate=0.05, *args, **kwargs
     ):
-        self.sigma_original = sigma_original
+        self.sigma_init = sigma_init
         self.population_size = population_size
         self.mutation_rate = mutation_rate
-        self.sigma = sigma_original
+        self.sigma = sigma_init
         self.n_nodes = 0
         self.n_generations = 1
 
@@ -204,7 +204,7 @@ class NGA(EvolutionaryStrategies):
         # reduce sigma
         if not new_mutant:
             self.n_generations += 1
-            self.sigma = self.sigma_original / self.n_generations
+            self.sigma = self.sigma_init / self.n_generations
         return best_loss, best_mutant
 
     # --------------------- only the functions below are called in EvolModel ---------------------
@@ -240,10 +240,11 @@ class CMA(EvolutionaryStrategies):
 
     def __init__(
         self,
-        sigma_init=1,
+        sigma_init=0.1,
         target_value=None,
         population_size=None,
         max_evaluations=None,
+        verbosity = 1,
         *args,
         **kwargs
     ):
@@ -252,13 +253,19 @@ class CMA(EvolutionaryStrategies):
         is dealth with by 'cma'. The default 'epochs' in EvolModel is one, meaning 'run step' is
         only called once during training.
         """
-
         self.sigma_init = sigma_init
         self.shape = None
         self.length_flat_layer = None
         self.trainable_weights_names = None
+        self.verbosity = verbosity
+        if verbosity == 0:
+            self.verbosity = -9
+        else:
+            self.verbosity = 1
+  
 
-        self.options = {"verb_log": 0, "verbose": 0, "verb_disp": 1000}
+        # These options do not all work as advertised
+        self.options = {"verb_log": 0, "verbose": self.verbosity, "verb_disp": 1000}
         if target_value:
             self.options["ftarget"] = target_value
         if population_size:
@@ -364,10 +371,6 @@ class CMA(EvolutionaryStrategies):
             .optimize(minimizethis)
             .result[0]
         )
-
-        # xopt = cma.fmin(
-        #    minimizethis, x0, self.sigma_init, options=self.options
-        # )[0]
 
         # Transform 'xopt' to the models' weight shape.
         selected_parent = self.undo_flatten(xopt)
