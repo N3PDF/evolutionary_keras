@@ -25,7 +25,7 @@ def parse_eval(loss):
     """
     try:
         loss = loss[0]
-    except TypeError as e:
+    except IndexError as e:
         # If the output was a number then it is ok
         if not isinstance(loss, (float, int)):
             raise e
