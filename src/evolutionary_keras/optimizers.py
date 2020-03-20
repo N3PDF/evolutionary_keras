@@ -240,10 +240,10 @@ class CMA(EvolutionaryStrategies):
 
     def __init__(
         self,
-        sigma_init=0.1,
+        sigma_init=0.3,
         target_value=None,
         population_size=None,
-        max_evaluations=None,
+        max_evaluations=100,
         verbosity = 1,
         *args,
         **kwargs
@@ -377,8 +377,8 @@ class CMA(EvolutionaryStrategies):
 
         # Determine the ultimatly selected mutants' performance on the training data.
         self.model.set_weights(selected_parent)
-        score = parse_eval(self.model.evaluate(x=x, y=y, verbose=0))
-        return score, selected_parent
+        loss = self.model.evaluate(x=x, y=y, verbose=0)
+        return loss, selected_parent
 
 
 class BFGS(EvolutionaryStrategies):
