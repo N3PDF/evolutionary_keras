@@ -243,7 +243,7 @@ class CMA(EvolutionaryStrategies):
         sigma_init=0.3,
         target_value=None,
         population_size=None,
-        max_evaluations=100,
+        max_evaluations=375**2 * 1e3,
         verbosity = 1,
         *args,
         **kwargs
