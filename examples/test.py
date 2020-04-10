@@ -58,8 +58,8 @@ prediction = Dense(10, activation="softmax")(dense)
 
 model = EvolModel(inputs=inputs, outputs=prediction)
 
-myopt = evolutionary_keras.optimizers.NGA(population_size=2, sigma_original=15)
-model.compile(optimizer="nga", loss="categorical_crossentropy", metrics=["accuracy"])
+myopt = evolutionary_keras.optimizers.NGA(population_size=20, sigma_init=15)
+model.compile(optimizer=myopt, loss="categorical_crossentropy", metrics=["accuracy"])
 
 history = model.fit(
     x=x_train,
