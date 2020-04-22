@@ -7,8 +7,7 @@ from copy import deepcopy
 
 import cma
 import numpy as np
-from tensorflow.python.keras.optimizer_v2.optimizer_v2 import \
-    OptimizerV2 as Optimizer
+from tensorflow.keras.optimizers import Optimizer
 
 from evolutionary_keras.utilities import (compatibility_numpy,
                                           get_number_nodes, parse_eval)
