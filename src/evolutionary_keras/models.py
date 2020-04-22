@@ -35,7 +35,8 @@ class EvolModel(Model):
         """
         # Checks (if the optimizer input is a string) and whether it is in the 'optimizers'
         # dictionary
-        if isinstance(optimizer, str) and optimizer in optimizer_dict.keys():
+        
+        if isinstance(optimizer, str) and optimizer.lower() in optimizer_dict.keys():
             opt = optimizer_dict.get(optimizer.lower())
             # And instanciate it with default values
             optimizer = opt()
