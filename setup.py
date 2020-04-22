@@ -13,7 +13,7 @@ setup(
     url="https://github.com/N3PDF/evolutionary_keras",
     package_dir={"": "src"},
     packages=find_packages("src"),
-    install_requires=["numpy", "sphinx_rtd_theme", "recommonmark", "cma", "tensorflow"],
+    install_requires=["numpy", "sphinx_rtd_theme", "recommonmark", "cma", "tensorflow", "keras"],
     python_requires=">=3.6",
     descriptions="An evolutionary algorithm implementation for Keras",
     long_description=long_description,
