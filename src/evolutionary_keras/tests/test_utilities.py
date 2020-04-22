@@ -1,8 +1,8 @@
 """ Test the utilities of evolutionary_keras """
 
 import numpy as np
-from tensorflow.keras import backend as K
-from tensorflow.keras.layers import Dense
+from keras import backend as K
+from keras.layers import Dense
 
 from evolutionary_keras.utilities import get_number_nodes, parse_eval
 
