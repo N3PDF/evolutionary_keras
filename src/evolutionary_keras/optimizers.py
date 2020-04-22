@@ -6,14 +6,14 @@ from abc import abstractmethod
 from copy import deepcopy
 
 import cma
-import numpy as np
-from keras.optimizers import Optimizer
 
-from evolutionary_keras.utilities import (
-    compatibility_numpy,
-    get_number_nodes,
-    parse_eval,
-)
+import numpy as np
+
+from tensorflow.python.keras.optimizer_v2.optimizer_v2 import \
+    OptimizerV2 as Optimizer
+
+from evolutionary_keras.utilities import (compatibility_numpy,
+                                          get_number_nodes, parse_eval)
 
 
 class EvolutionaryStrategies(Optimizer):
@@ -74,7 +74,7 @@ class NGA(EvolutionaryStrategies):
     # In case the user wants to adjust sigma_init
     # population_size or mutation_rate parameters the NGA method has to be initiated
     def __init__(
-        self, sigma_init=15, population_size=80, mutation_rate=0.05, *args, **kwargs
+        self, sigma_init=15, population_size=80, mutation_rate=0.05, name="NGA", *args, **kwargs
     ):
         self.sigma_init = sigma_init
         self.population_size = population_size
@@ -83,7 +83,18 @@ class NGA(EvolutionaryStrategies):
         self.n_nodes = 0
         self.n_generations = 1
 
-        super(NGA, self).__init__(*args, **kwargs)
+        super(NGA, self).__init__(name, **kwargs)
+
+    def get_config(self):
+        config = super(NGA, self).get_config()
+        config.update(
+            {
+                "sigma_init": self.sigma_init,
+                "population_size": self.population_size,
+                "mutation_rate": self.mutation_rate,
+            }
+        )
+        return config
 
     # Only works if all non_trainable_weights come after all trainable_weights
     # perhaps part of the functionality (getting shape) can be moved to ES
@@ -242,6 +253,7 @@ class CMA(EvolutionaryStrategies):
         population_size=None,
         max_evaluations=None,
         verbosity=1,
+        name="CMA",
         *args,
         **kwargs
     ):
@@ -268,7 +280,19 @@ class CMA(EvolutionaryStrategies):
         if population_size:
             self.options["popsize"] = population_size
 
-        super(CMA, self).__init__(*args, **kwargs)
+        super(CMA, self).__init__(name, **kwargs)
+
+    def get_config(self):
+        config = super(CMA, self).get_config()
+        config.update(
+            {
+                "sigma_init": self.sigma_init,
+                "target_value": self.target_value,
+                "population_size": self.population_size,
+                "max_evaluations": self.max_evaluations,
+            }
+        )
+        return config
 
     def on_compile(self, model):
         """ Function to be called by the model during compile time. Register the model `model` with
