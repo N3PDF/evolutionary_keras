@@ -2,8 +2,8 @@
 
 import logging
 
-from keras.callbacks.callbacks import History
-from keras.models import Model
+from tensorflow.keras.callbacks import History
+from tensorflow.keras.models import Model
 
 import evolutionary_keras.optimizers as Evolutionary_Optimizers
 from evolutionary_keras.utilities import parse_eval
