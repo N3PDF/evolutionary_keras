@@ -6,9 +6,7 @@ from abc import abstractmethod
 from copy import deepcopy
 
 import cma
-
 import numpy as np
-
 from tensorflow.python.keras.optimizer_v2.optimizer_v2 import \
     OptimizerV2 as Optimizer
 

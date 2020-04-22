@@ -1,9 +1,10 @@
 """ Test the utilities of evolutionary_keras """
 
 import numpy as np
-from keras import backend as K
-from keras.layers import Dense
-from evolutionary_keras.utilities import parse_eval, get_number_nodes
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Dense
+
+from evolutionary_keras.utilities import get_number_nodes, parse_eval
 
 
 def test_parse_eval():
