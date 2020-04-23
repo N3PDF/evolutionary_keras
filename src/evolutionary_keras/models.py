@@ -99,7 +99,7 @@ class EvolModel(Model):
                 log.info(information)
 
             # Fill keras history
-            history_data = dict(zip(self.metrics_names, score))
+            history_data = score
             self.history_info.on_epoch_end(epoch, history_data)
        
         return self.history_info
