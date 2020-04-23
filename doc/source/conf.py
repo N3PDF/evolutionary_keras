@@ -26,6 +26,7 @@ author = 'Stefano Carrazza, Juan Cruz-Martinez, Roy Stegeman'
 
 # The full version, including alpha/beta/rc tags
 release = evolutionary_keras .__version__
+autodoc_mock_imports = ['tensorflow']
 
 
 # -- General configuration ---------------------------------------------------
