@@ -1,19 +1,21 @@
 from setuptools import setup, find_packages
-from os import path
+import os
 import re
 
 
-requirements = ['numpy', 'tensorflow', 'cma']
+requirements = ['numpy', 'cma']
+if os.environ.get('READTHEDOCS') != 'True':
+    requirements.append('tensorflow')
 PACKAGE = 'evolutionary_keras'
 
-this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
+this_directory = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(this_directory, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 def get_version():
     """ Gets the version from the package's __init__ file
     if there is some problem, let it happily fail """
-    VERSIONFILE = path.join('src', PACKAGE, '__init__.py')
+    VERSIONFILE = os.path.join('src', PACKAGE, '__init__.py')
     initfile_lines = open(VERSIONFILE, 'rt').readlines()
     VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
     for line in initfile_lines:
