@@ -6,7 +6,6 @@ from tensorflow.keras.callbacks import History
 from tensorflow.keras.models import Model
 
 import evolutionary_keras.optimizers as Evolutionary_Optimizers
-from evolutionary_keras.utilities import parse_eval
 
 log = logging.getLogger(__name__)
 
@@ -90,23 +89,19 @@ class EvolModel(Model):
             # Generate the best mutant
             score, best_mutant = self.opt_instance.run_step(x=x, y=y)
 
+            training_metric = next(iter(score))  
+
             # Ensure the best mutant is the current one
             self.set_weights(best_mutant)
             if verbose == 1:
-                loss = parse_eval(score)
+                loss = score[training_metric]
                 information = f" > epoch: {epoch+1}/{epochs}, {loss} "
                 log.info(information)
+
             # Fill keras history
-            try:
-                history_data = dict(zip(self.metrics_names, score))
-            except TypeError as e:
-                # Maybe score was just one number, evil Keras
-                if parse_eval(score) == score:
-                    score = [score, score]
-                    history_data = dict(zip(self.metrics_names, score))
-                else:
-                    raise e
+            history_data = dict(zip(self.metrics_names, score))
             self.history_info.on_epoch_end(epoch, history_data)
+       
         return self.history_info
 
     def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, **kwargs):

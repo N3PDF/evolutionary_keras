@@ -70,6 +70,7 @@ history = model.fit(
     verbose=1,
     # validation_data=(x_test, y_test)
 )
-score = model.evaluate(x=x_test, y=y_test, verbose=0)
-print("Test loss:", score[0])
-print("Test accuracy:", score[1])
+score = model.evaluate(x=x_test, y=y_test, return_dict=True, verbose=0)
+
+print("Test loss:", score['loss'])
+print("Test accuracy:", score['accuracy'])

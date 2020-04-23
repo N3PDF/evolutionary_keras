@@ -10,7 +10,7 @@ import numpy as np
 from tensorflow.keras.optimizers import Optimizer
 
 from evolutionary_keras.utilities import (compatibility_numpy,
-                                          get_number_nodes, parse_eval)
+                                          get_number_nodes)
 
 
 class EvolutionaryStrategies(Optimizer):
@@ -187,8 +187,9 @@ class NGA(EvolutionaryStrategies):
             `loss`: loss of the best performing mutant
             `best_mutant`: best performing mutant
         """
-        best_loss = self.model.evaluate(x=x, y=y, verbose=verbose)
-        best_loss_val = parse_eval(best_loss)
+        best_loss = self.model.evaluate(x=x, y=y, verbose=verbose, return_dict=True)
+        training_metric = next(iter(best_loss))  
+        best_loss_val = best_loss[training_metric]
         best_mutant = mutants[0]
         new_mutant = False
         for mutant in mutants[1:]:
@@ -196,8 +197,8 @@ class NGA(EvolutionaryStrategies):
             # TODO related to the other todos, eventually this will have to be done
             # in a per-layer basis
             self.model.set_weights(mutant)
-            loss = self.model.evaluate(x=x, y=y, verbose=False)
-            loss_val = parse_eval(loss)
+            loss = self.model.evaluate(x=x, y=y, verbose=False, return_dict=True)
+            loss_val = loss[training_metric]
 
             if loss_val < best_loss_val:
                 best_loss_val = loss_val
@@ -376,13 +377,16 @@ class CMA(EvolutionaryStrategies):
         # If max_evaluations is not set manually, use the number advised in arXiv:1604.00772
         if self.max_evaluations is None:
             self.options["maxfevals"] = 1e3 * len(x0) ** 2
+        else: 
+            self.options["maxfevals"] = self.max_evaluations
 
         # minimizethis is function that 'cma' aims to minimize
         def minimizethis(flattened_weights):
             weights = self.undo_flatten(flattened_weights)
             self.model.set_weights(weights)
-            loss = parse_eval(self.model.evaluate(x=x, y=y, verbose=0))
-            return loss
+            loss = self.model.evaluate(x=x, y=y, verbose=0, return_dict=True)
+            training_metric = next(iter(loss))  
+            return loss[training_metric]
 
         # Run the minimization and return the ultimatly selected 1 dimensional layer of weights
         # 'xopt'.
@@ -397,5 +401,5 @@ class CMA(EvolutionaryStrategies):
 
         # Determine the ultimatly selected mutants' performance on the training data.
         self.model.set_weights(selected_parent)
-        loss = self.model.evaluate(x=x, y=y, verbose=0)
+        loss = self.model.evaluate(x=x, y=y, verbose=0, return_dict=True)
         return loss, selected_parent
