@@ -86,7 +86,6 @@ class EvolModel(Model):
                 "The optimizer determines the number of generations, epochs will be ignored."
             )
 
-        metricas = self.metrics_names
         for epoch in range(epochs):
             # Generate the best mutant
             score, best_mutant = self.opt_instance.run_step(x=x, y=y)
@@ -99,12 +98,12 @@ class EvolModel(Model):
                 log.info(information)
             # Fill keras history
             try:
-                history_data = dict(zip(metricas, score))
+                history_data = dict(zip(self.metrics_names, score))
             except TypeError as e:
                 # Maybe score was just one number, evil Keras
                 if parse_eval(score) == score:
                     score = [score, score]
-                    history_data = dict(zip(metricas, score))
+                    history_data = dict(zip(self.metrics_names, score))
                 else:
                     raise e
             self.history_info.on_epoch_end(epoch, history_data)
