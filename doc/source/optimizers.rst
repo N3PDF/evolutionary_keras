@@ -18,6 +18,6 @@ Implementation of the Nodal Genetic Algorithm as implemented by the NNPDF collab
 
 Covariance Matrix Adaptation Evolution Strategy (CMA-ES)
 ========================================================
-Implementation of the Covariance Matrix Adaptation Evolution Strategy as developed by Nokolaus Hansen and publicly available at <https://github.com/CMA-ES/pycma.>
+Implementation of the Covariance Matrix Adaptation Evolution Strategy as developed by Nokolaus Hansen et al `[ref] <https://zenodo.org/record/3764210>`_ as `pycma <https://github.com/CMA-ES/pycma>`_.
 
 .. autoclass:: evolutionary_keras.optimizers.CMA
