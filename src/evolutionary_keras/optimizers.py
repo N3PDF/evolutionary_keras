@@ -19,7 +19,7 @@ class EvolutionaryStrategies(Optimizer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model = None
-        self.shape = None
+        self.shape = []
         self.non_training_weights = []
 
     @abstractmethod
@@ -272,7 +272,6 @@ class CMA(EvolutionaryStrategies):
         The default `epochs` in EvolModel is 1, meaning `run step` called once during training.
         """
         self.sigma_init = sigma_init
-        self.shape = None
         self.length_flat_layer = None
         self.trainable_weights_names = None
         self.verbosity = verbosity
