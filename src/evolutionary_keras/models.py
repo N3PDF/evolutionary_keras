@@ -1,8 +1,10 @@
 """ Implementation of GA Model """
 
 import logging
-from keras.models import Model
+
 from keras.callbacks.callbacks import History
+from keras.models import Model
+
 import evolutionary_keras.optimizers as Evolutionary_Optimizers
 from evolutionary_keras.utilities import parse_eval
 
@@ -10,18 +12,15 @@ log = logging.getLogger(__name__)
 
 # Dictionary of the new evolutionay optimizers
 optimizer_dict = {
-    "ga": Evolutionary_Optimizers.GA,
     "nga": Evolutionary_Optimizers.NGA,
     "cma": Evolutionary_Optimizers.CMA,
-    "bfgs": Evolutionary_Optimizers.BFGS,
-    "ceressolver": Evolutionary_Optimizers.CeresSolver,
 }
+
 
 class EvolModel(Model):
     """
-    EvolModel forewards all tasks to keras if the optimizer is NOT genetic.
-    In case the optimizer is genetic, fitting methods
-    from Evolutionary_Optimizers.py are being used.
+    EvolModel forwards all tasks to keras if the optimizer is NOT genetic. In case the optimizer is
+    genetic, fitting methods from Evolutionary_Optimizers.py are being used.
     """
 
     def __init__(self, *args, **kwargs):
@@ -31,27 +30,26 @@ class EvolModel(Model):
         self.history = History()
 
     def parse_optimizer(self, optimizer):
-        """ Checks whether the optimizer is genetic
-        and creates and optimizer instance in case a string was given
-        as input """
-        # Checks (if the optimizer input is a string)
-        # and whether it is in the 'optimizers' dictionary
+        """ Checks whether the optimizer is genetic and creates and optimizer instance in case a
+        string was given as input.
+        """
+        # Checks (if the optimizer input is a string) and whether it is in the 'optimizers'
+        # dictionary
         if isinstance(optimizer, str) and optimizer in optimizer_dict.keys():
             opt = optimizer_dict.get(optimizer.lower())
             # And instanciate it with default values
             optimizer = opt()
-        # Check whether the optimizer is an evolutionary
-        # optimizer
+            optimizer.on_compile(self)
+        # Check whether the optimizer is an evolutionary optimizer
         if isinstance(optimizer, Evolutionary_Optimizers.EvolutionaryStrategies):
             self.is_genetic = True
             self.opt_instance = optimizer
             optimizer.on_compile(self)
 
     def compile(self, optimizer="rmsprop", **kwargs):
-        """ Compile """
+        """ When the optimizer is genetic, compiles the model in keras setting an arbitrary
+        keras supported optimizer """
         self.parse_optimizer(optimizer)
-        # If the optimizer is genetic,
-        # compile using keras while setting a random (keras supported) gradient descent optimizer
         if self.is_genetic:
             super().compile(optimizer="rmsprop", **kwargs)
         else:
@@ -60,6 +58,18 @@ class EvolModel(Model):
     def perform_genetic_fit(
         self, x=None, y=None, epochs=1, verbose=0, validation_data=None
     ):
+        """ 
+        Parameters
+        ----------
+            x: array or list of arrays
+                input data
+            y: array or list of arrays
+                target values
+            epochs: int
+                number of generations of mutants
+            verbose: int
+                verbose, prints to log.info the loss per epoch
+        """
         # Prepare the history for the initial epoch
         self.history.on_train_begin()
         # Validation data is currently not being used!!
@@ -67,19 +77,23 @@ class EvolModel(Model):
             log.warning(
                 "Validation data is not used at the moment by the Genetic Algorithms!!"
             )
-        #             x_val = validation_data[0]
-        #             y_val = validation_data[1]
+
+        if isinstance(self.opt_instance, Evolutionary_Optimizers.CMA) and epochs != 1:
+            epochs = 1
+            log.warning(
+                "The optimizer determines the number of generations, epochs will be ignored."
+            )
 
         metricas = self.metrics_names
         for epoch in range(epochs):
             # Generate the best mutant
             score, best_mutant = self.opt_instance.run_step(x=x, y=y)
+
             # Ensure the best mutant is the current one
             self.set_weights(best_mutant)
             if verbose == 1:
                 loss = parse_eval(score)
-                sigma = self.opt_instance.sigma
-                information = f" > epoch: {epoch+1}/{epochs}, {loss} {sigma}"
+                information = f" > epoch: {epoch+1}/{epochs}, {loss} "
                 log.info(information)
             # Fill keras history
             try:
@@ -95,9 +109,9 @@ class EvolModel(Model):
         return self.history
 
     def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, **kwargs):
-        """ If the optimizer is genetic, the fitting
-        procedure consists on executing `run_step` for the given
-        number of epochs """
+        """ If the optimizer is genetic, the fitting procedure consists on executing `run_step` for
+        the given number of epochs.
+        """
         if self.is_genetic:
             result = self.perform_genetic_fit(
                 x=x,
@@ -113,6 +127,6 @@ class EvolModel(Model):
                 validation_data=validation_data,
                 epochs=epochs,
                 verbose=verbose,
-                **kwargs,
+                # **kwargs,
             )
         return result

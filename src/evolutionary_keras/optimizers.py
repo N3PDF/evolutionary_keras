@@ -4,9 +4,16 @@
 
 from abc import abstractmethod
 from copy import deepcopy
+
+import cma
 import numpy as np
 from keras.optimizers import Optimizer
-from evolutionary_keras.utilities import get_number_nodes, parse_eval
+
+from evolutionary_keras.utilities import (
+    compatibility_numpy,
+    get_number_nodes,
+    parse_eval,
+)
 
 
 class EvolutionaryStrategies(Optimizer):
@@ -47,10 +54,6 @@ class EvolutionaryStrategies(Optimizer):
         pass
 
 
-class GA(EvolutionaryStrategies):
-    pass
-
-
 class NGA(EvolutionaryStrategies):
     """
     The Nodal Genetic Algorithm (NGA) is similar to the regular GA, but this time a number
@@ -60,7 +63,7 @@ class NGA(EvolutionaryStrategies):
 
     Parameters
     ----------
-        `sigma_original`: int
+        `sigma_init`: int
             Allows adjusting the original sigma
         `population_size`: int
             Number of mutants to be generated per iteration
@@ -68,15 +71,15 @@ class NGA(EvolutionaryStrategies):
             Mutation rate
     """
 
-    # In case the user wants to adjust sigma_original
+    # In case the user wants to adjust sigma_init
     # population_size or mutation_rate parameters the NGA method has to be initiated
     def __init__(
-        self, *args, sigma_original=15, population_size=80, mutation_rate=0.05, **kwargs
+        self, sigma_init=15, population_size=80, mutation_rate=0.05, *args, **kwargs
     ):
-        self.sigma_original = sigma_original
+        self.sigma_init = sigma_init
         self.population_size = population_size
         self.mutation_rate = mutation_rate
-        self.sigma = sigma_original
+        self.sigma = sigma_init
         self.n_nodes = 0
         self.n_generations = 1
 
@@ -162,12 +165,8 @@ class NGA(EvolutionaryStrategies):
             mutants.append(mutant)
         return mutants
 
-    # RESULTS DO IMPROVE WHEN TRAINING BASED ON SELECTING HIGHEST ACCURACY, BUT NOT IF SELECTION IS BASED ON LOWEST LOSS
-    # ALSO, THE ACCURACY CHANGES AFTER THE WEIGHTS OF THE BEST PERFROMING MODEL ARE LOADED INTO THE MODEL AGAIN, IS THERE
-    # SOME RANDOMIZATION DONE BY TENSORFLOW? BUT THE MODEL DOES NOT INCLUDE THINGS SUCH AS DROPOUT LAYER. SHOULD WE USE DIFFERENT
-    # METHOD TO SAVE AND LOAD MODELS?
-
-    # Evalutates all mutantants of a generationa and ouptus loss and the single best performing mutant of the generation
+    # Evalutates all mutantants of a generationa and ouptus loss and the single best performing
+    # mutant of the generation
     def evaluate_mutants(self, mutants, x=None, y=None, verbose=0):
         """ Evaluates all mutants of a generation and select the best one.
 
@@ -202,7 +201,7 @@ class NGA(EvolutionaryStrategies):
         # reduce sigma
         if not new_mutant:
             self.n_generations += 1
-            self.sigma = self.sigma_original / self.n_generations
+            self.sigma = self.sigma_init / self.n_generations
         return best_loss, best_mutant
 
     # --------------------- only the functions below are called in EvolModel ---------------------
@@ -216,12 +215,166 @@ class NGA(EvolutionaryStrategies):
 
 
 class CMA(EvolutionaryStrategies):
-    pass
+    """
+    From http://cma.gforge.inria.fr/:
+    "The CMA-ES (Covariance Matrix Adaptation Evolution Strategy) is an evolutionary algorithm for
+    difficult non-linear non-convex black-box optimisation problems in continuous domain."
+    The work-horse of this class is the cma package developed and maintained by Nikolaus Hansen
+    (see https://pypi.org/project/cma/), this class allows for convenient implementation within
+    the keras environment.
 
+    Parameters
+    ----------
+        `sigma_init`: int
+            Allows adjusting the initial sigma
+        `population_size`: int
+            Number of mutants to be generated per iteration
+        `target_value`: float
+            Stops the minimizer if the target loss is achieved
+        `max_evaluations`: int
+            Maximimum total number of mutants tested during optimization
+    """
 
-class BFGS(EvolutionaryStrategies):
-    pass
+    def __init__(
+        self,
+        sigma_init=0.3,
+        target_value=None,
+        population_size=None,
+        max_evaluations=None,
+        verbosity=1,
+        *args,
+        **kwargs
+    ):
+        """
+        `CMA` does not allow the user to set a number of generations (epochs),
+        as this is dealth with by the `cma` package.
+        The default `epochs` in EvolModel is 1, meaning `run step` called once during training.
+        """
+        self.sigma_init = sigma_init
+        self.shape = None
+        self.length_flat_layer = None
+        self.trainable_weights_names = None
+        self.verbosity = verbosity
+        if verbosity == 0:
+            self.verbosity = -9
+        else:
+            self.verbosity = 1
+        self.max_evaluations = max_evaluations
 
+        # These options do not all work as advertised
+        self.options = {"verb_log": 0, "verbose": self.verbosity, "verb_disp": 1000}
+        if target_value:
+            self.options["ftarget"] = target_value
+        if population_size:
+            self.options["popsize"] = population_size
 
-class CeresSolver(EvolutionaryStrategies):
-    pass
+        super(CMA, self).__init__(*args, **kwargs)
+
+    def on_compile(self, model):
+        """ Function to be called by the model during compile time. Register the model `model` with
+        the optimizer.
+        """
+        # Here we can perform some checks as well
+        self.model = model
+        self.shape = self.get_shape()
+
+    def get_shape(self):
+        # we do all this to keep track of the position of the trainable weights
+        self.trainable_weights_names = [
+            weights.name for weights in self.model.trainable_weights
+        ]
+
+        if self.trainable_weights_names == []:
+            raise TypeError("The model does not have any trainable weights!")
+
+        self.shape = [weight.shape.as_list() for weight in self.model.trainable_weights]
+        return self.shape
+
+    def weights_per_layer(self):
+        """
+        'weights_per_layer' creates 'self.lengt_flat_layer' which is a list conatining the numer of
+        weights in each layer of the network.
+        """
+
+        # The first values of 'self.length_flat_layer' is set to 0 which is helpful in determining
+        # the range of weights in the function 'undo_flatten'.
+        self.length_flat_layer = [
+            len(np.reshape(weight.numpy(), [-1]))
+            for weight in self.model.trainable_weights
+        ]
+        self.length_flat_layer.insert(0, 0)
+
+    def flatten(self):
+        """
+        'flatten' returns a 1 dimensional list of all weights in the keras model.
+        """
+        # The first values of 'self.length_flat_layer' is set to 0 which is helpful in determining
+        # the range of weights in the function 'undo_flatten'.
+        flattened_weights = []
+        self.length_flat_layer = []
+        self.length_flat_layer.append(0)
+        for weight in self.model.trainable_weights:
+            a = np.reshape(compatibility_numpy(weight), [-1])
+            flattened_weights.append(a)
+            self.length_flat_layer.append(len(a))
+
+        flattened_weights = np.concatenate(flattened_weights)
+
+        return flattened_weights
+
+    def undo_flatten(self, flattened_weights):
+        """
+        'undo_flatten' does the inverse of 'flatten': it takes a 1 dimensional input and returns a
+        weight structure that can be loaded into the model.
+        """
+        new_weights = []
+        for i, layer_shape in enumerate(self.shape):
+            flat_layer = flattened_weights[
+                self.length_flat_layer[i] : self.length_flat_layer[i]
+                + self.length_flat_layer[i + 1]
+            ]
+            new_weights.append(np.reshape(flat_layer, layer_shape))
+
+        ordered_names = [
+            weight.name for layer in self.model.layers for weight in layer.weights
+        ]
+
+        new_parent = deepcopy(self.model.get_weights())
+        for i, weight in enumerate(self.trainable_weights_names):
+            location_weight = ordered_names.index(weight)
+            new_parent[location_weight] = new_weights[i]
+
+        return new_parent
+
+    def run_step(self, x, y):
+        """ Wrapper to the optimizer"""
+
+        # Get the nubmer of weights in each keras layer
+        x0 = self.flatten()
+
+        # If max_evaluations is not set manually, use the number advised in arXiv:1604.00772
+        if self.max_evaluations is None:
+            self.options["maxfevals"] = 1e3 * len(x0) ** 2
+
+        # minimizethis is function that 'cma' aims to minimize
+        def minimizethis(flattened_weights):
+            weights = self.undo_flatten(flattened_weights)
+            self.model.set_weights(weights)
+            loss = parse_eval(self.model.evaluate(x=x, y=y, verbose=0))
+            return loss
+
+        # Run the minimization and return the ultimatly selected 1 dimensional layer of weights
+        # 'xopt'.
+        xopt = (
+            cma.CMAEvolutionStrategy(x0, self.sigma_init, self.options)
+            .optimize(minimizethis)
+            .result[0]
+        )
+
+        # Transform 'xopt' to the models' weight shape.
+        selected_parent = self.undo_flatten(xopt)
+
+        # Determine the ultimatly selected mutants' performance on the training data.
+        self.model.set_weights(selected_parent)
+        loss = self.model.evaluate(x=x, y=y, verbose=0)
+        return loss, selected_parent

@@ -1,6 +1,8 @@
 """
     Module including some useful functions
 """
+from keras import backend as K
+
 
 def get_number_nodes(layer):
     """ Given a keras layer, outputs the number of nodes """
@@ -29,3 +31,11 @@ def parse_eval(loss):
         if not isinstance(loss, (float, int)):
             raise e
     return loss
+
+
+def compatibility_numpy(weight):
+    try:
+        result = weight.numpy()
+    except NotImplementedError:
+        result = K.eval(weight.read_value())
+    return result

@@ -36,3 +36,12 @@ For a more fine-grained usage we can also import the optimizer and instantiate i
     from evolutionary_keras.optimizers import NGA
     my_nga = NGA(population_size = 42, mutation_rate = 0.2)
     my_model.compile(my_nga)
+
+
+.. note::
+
+  Care is due when using a GPU together with ``evolutionary_keras``. At the moment mutant generation is always performed in CPU
+  for all optimizers.
+  If the model is to be evaluated on GPU this will create a big overhead due to constantly copying the weights to the CPU.
+  Only when the evaluation part is big enough that this overhead becomes negligible, evaluating on GPU can be an advantage.
+  To force the ``tensorflow`` backend not to use the GPU you can set the enviromental variable: ``CUDA_VISIBLE_DEVICES=""``   
