@@ -2,11 +2,10 @@
 
 import logging
 
-from keras.callbacks.callbacks import History
-from keras.models import Model
+from tensorflow.keras.callbacks import History
+from tensorflow.keras.models import Model
 
 import evolutionary_keras.optimizers as Evolutionary_Optimizers
-from evolutionary_keras.utilities import parse_eval
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +26,7 @@ class EvolModel(Model):
         super().__init__(*args, **kwargs)
         self.is_genetic = False
         self.opt_instance = None
-        self.history = History()
+        self.history_info = History()
 
     def parse_optimizer(self, optimizer):
         """ Checks whether the optimizer is genetic and creates and optimizer instance in case a
@@ -35,7 +34,8 @@ class EvolModel(Model):
         """
         # Checks (if the optimizer input is a string) and whether it is in the 'optimizers'
         # dictionary
-        if isinstance(optimizer, str) and optimizer in optimizer_dict.keys():
+
+        if isinstance(optimizer, str) and optimizer.lower() in optimizer_dict.keys():
             opt = optimizer_dict.get(optimizer.lower())
             # And instanciate it with default values
             optimizer = opt()
@@ -50,6 +50,7 @@ class EvolModel(Model):
         """ When the optimizer is genetic, compiles the model in keras setting an arbitrary
         keras supported optimizer """
         self.parse_optimizer(optimizer)
+        self.history_info.set_model(self)
         if self.is_genetic:
             super().compile(optimizer="rmsprop", **kwargs)
         else:
@@ -71,7 +72,7 @@ class EvolModel(Model):
                 verbose, prints to log.info the loss per epoch
         """
         # Prepare the history for the initial epoch
-        self.history.on_train_begin()
+        self.history_info.on_train_begin()
         # Validation data is currently not being used!!
         if validation_data is not None:
             log.warning(
@@ -84,29 +85,24 @@ class EvolModel(Model):
                 "The optimizer determines the number of generations, epochs will be ignored."
             )
 
-        metricas = self.metrics_names
         for epoch in range(epochs):
             # Generate the best mutant
             score, best_mutant = self.opt_instance.run_step(x=x, y=y)
 
+            training_metric = next(iter(score))
+
             # Ensure the best mutant is the current one
             self.set_weights(best_mutant)
             if verbose == 1:
-                loss = parse_eval(score)
+                loss = score[training_metric]
                 information = f" > epoch: {epoch+1}/{epochs}, {loss} "
                 log.info(information)
+
             # Fill keras history
-            try:
-                history_data = dict(zip(metricas, score))
-            except TypeError as e:
-                # Maybe score was just one number, evil Keras
-                if parse_eval(score) == score:
-                    score = [score, score]
-                    history_data = dict(zip(metricas, score))
-                else:
-                    raise e
-            self.history.on_epoch_end(epoch, history_data)
-        return self.history
+            history_data = score
+            self.history_info.on_epoch_end(epoch, history_data)
+
+        return self.history_info
 
     def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, **kwargs):
         """ If the optimizer is genetic, the fitting procedure consists on executing `run_step` for

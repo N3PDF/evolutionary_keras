@@ -1,7 +1,7 @@
 """
     Module including some useful functions
 """
-from keras import backend as K
+from tensorflow.keras import backend as K
 
 
 def get_number_nodes(layer):
@@ -17,23 +17,8 @@ def get_number_nodes(layer):
     return nodes
 
 
-def parse_eval(loss):
-    """ Parses the result from `model.evaluate`, which sometimes
-    comes as a list and sometimes comes as one single float
-    Returns
-    -------
-        `loss` : loss as a float
-    """
-    try:
-        loss = loss[0]
-    except TypeError as e:
-        # If the output was a number then it is ok
-        if not isinstance(loss, (float, int)):
-            raise e
-    return loss
-
-
 def compatibility_numpy(weight):
+    """ Wrapper in case the evaluated keras object doesn't have a numpy() method """
     try:
         result = weight.numpy()
     except NotImplementedError:

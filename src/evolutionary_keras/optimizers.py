@@ -7,23 +7,19 @@ from copy import deepcopy
 
 import cma
 import numpy as np
-from keras.optimizers import Optimizer
+from tensorflow.keras.optimizers import Optimizer
 
-from evolutionary_keras.utilities import (
-    compatibility_numpy,
-    get_number_nodes,
-    parse_eval,
-)
+from evolutionary_keras.utilities import compatibility_numpy, get_number_nodes
 
 
 class EvolutionaryStrategies(Optimizer):
     """ Parent class for all Evolutionary Strategies
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
         self.model = None
-        self.shape = None
+        self.shape = []
         self.non_training_weights = []
 
     @abstractmethod
@@ -51,7 +47,13 @@ class EvolutionaryStrategies(Optimizer):
 
     def get_updates(self, loss, params):
         """ Capture Keras get_updates method """
-        pass
+
+    def _resource_apply_dense(self):
+        """ Override """
+
+    def _resource_apply_sparse(self):
+        """ Override """
+
 
 
 class NGA(EvolutionaryStrategies):
@@ -74,7 +76,12 @@ class NGA(EvolutionaryStrategies):
     # In case the user wants to adjust sigma_init
     # population_size or mutation_rate parameters the NGA method has to be initiated
     def __init__(
-        self, sigma_init=15, population_size=80, mutation_rate=0.05, *args, **kwargs
+        self,
+        name="NGA",
+        sigma_init=15,
+        population_size=80,
+        mutation_rate=0.05,
+        **kwargs
     ):
         self.sigma_init = sigma_init
         self.population_size = population_size
@@ -83,7 +90,18 @@ class NGA(EvolutionaryStrategies):
         self.n_nodes = 0
         self.n_generations = 1
 
-        super(NGA, self).__init__(*args, **kwargs)
+        super(NGA, self).__init__(name, **kwargs)
+
+    def get_config(self):
+        config = super(NGA, self).get_config()
+        config.update(
+            {
+                "sigma_init": self.sigma_init,
+                "population_size": self.population_size,
+                "mutation_rate": self.mutation_rate,
+            }
+        )
+        return config
 
     # Only works if all non_trainable_weights come after all trainable_weights
     # perhaps part of the functionality (getting shape) can be moved to ES
@@ -179,8 +197,9 @@ class NGA(EvolutionaryStrategies):
             `loss`: loss of the best performing mutant
             `best_mutant`: best performing mutant
         """
-        best_loss = self.model.evaluate(x=x, y=y, verbose=verbose)
-        best_loss_val = parse_eval(best_loss)
+        best_loss = self.model.evaluate(x=x, y=y, verbose=verbose, return_dict=True)
+        training_metric = next(iter(best_loss))
+        best_loss_val = best_loss[training_metric]
         best_mutant = mutants[0]
         new_mutant = False
         for mutant in mutants[1:]:
@@ -188,8 +207,8 @@ class NGA(EvolutionaryStrategies):
             # TODO related to the other todos, eventually this will have to be done
             # in a per-layer basis
             self.model.set_weights(mutant)
-            loss = self.model.evaluate(x=x, y=y, verbose=False)
-            loss_val = parse_eval(loss)
+            loss = self.model.evaluate(x=x, y=y, verbose=False, return_dict=True)
+            loss_val = loss[training_metric]
 
             if loss_val < best_loss_val:
                 best_loss_val = loss_val
@@ -237,12 +256,12 @@ class CMA(EvolutionaryStrategies):
 
     def __init__(
         self,
+        name="CMA",
         sigma_init=0.3,
         target_value=None,
         population_size=None,
         max_evaluations=None,
         verbosity=1,
-        *args,
         **kwargs
     ):
         """
@@ -251,7 +270,6 @@ class CMA(EvolutionaryStrategies):
         The default `epochs` in EvolModel is 1, meaning `run step` called once during training.
         """
         self.sigma_init = sigma_init
-        self.shape = None
         self.length_flat_layer = None
         self.trainable_weights_names = None
         self.verbosity = verbosity
@@ -268,7 +286,19 @@ class CMA(EvolutionaryStrategies):
         if population_size:
             self.options["popsize"] = population_size
 
-        super(CMA, self).__init__(*args, **kwargs)
+        super(CMA, self).__init__(name, **kwargs)
+
+    def get_config(self):
+        config = super(CMA, self).get_config()
+        config.update(
+            {
+                "sigma_init": self.sigma_init,
+                "target_value": self.target_value,
+                "population_size": self.population_size,
+                "max_evaluations": self.max_evaluations,
+            }
+        )
+        return config
 
     def on_compile(self, model):
         """ Function to be called by the model during compile time. Register the model `model` with
@@ -355,13 +385,16 @@ class CMA(EvolutionaryStrategies):
         # If max_evaluations is not set manually, use the number advised in arXiv:1604.00772
         if self.max_evaluations is None:
             self.options["maxfevals"] = 1e3 * len(x0) ** 2
+        else:
+            self.options["maxfevals"] = self.max_evaluations
 
         # minimizethis is function that 'cma' aims to minimize
         def minimizethis(flattened_weights):
             weights = self.undo_flatten(flattened_weights)
             self.model.set_weights(weights)
-            loss = parse_eval(self.model.evaluate(x=x, y=y, verbose=0))
-            return loss
+            loss = self.model.evaluate(x=x, y=y, verbose=0, return_dict=True)
+            training_metric = next(iter(loss))
+            return loss[training_metric]
 
         # Run the minimization and return the ultimatly selected 1 dimensional layer of weights
         # 'xopt'.
@@ -376,5 +409,5 @@ class CMA(EvolutionaryStrategies):
 
         # Determine the ultimatly selected mutants' performance on the training data.
         self.model.set_weights(selected_parent)
-        loss = self.model.evaluate(x=x, y=y, verbose=0)
+        loss = self.model.evaluate(x=x, y=y, verbose=0, return_dict=True)
         return loss, selected_parent
