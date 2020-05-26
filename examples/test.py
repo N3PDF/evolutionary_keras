@@ -8,13 +8,18 @@ from tensorflow.keras.layers import Dense, Input, Flatten
 from evolutionary_keras.models import EvolModel
 import evolutionary_keras.optimizers
 
+import logging
+logging.basicConfig(level = logging.INFO)
+logger = logging.getLogger()
+
+
 
 batch_size = 128
 num_classes = 10
 dense_size = 16
-epochs = 4000
+epochs = 40
 
-max_epochs = 40000
+max_epochs = 400
 
 # input image dimensions
 img_rows, img_cols = 28, 28
