@@ -9,7 +9,11 @@ import cma
 import numpy as np
 from keras.optimizers import Optimizer
 
-from evolutionary_keras.utilities import compatibility_numpy, get_number_nodes, parse_eval
+from evolutionary_keras.utilities import (
+    compatibility_numpy,
+    get_number_nodes,
+    parse_eval,
+)
 
 
 class EvolutionaryStrategies(Optimizer):
@@ -69,7 +73,9 @@ class NGA(EvolutionaryStrategies):
 
     # In case the user wants to adjust sigma_init
     # population_size or mutation_rate parameters the NGA method has to be initiated
-    def __init__(self, sigma_init=15, population_size=80, mutation_rate=0.05, *args, **kwargs):
+    def __init__(
+        self, sigma_init=15, population_size=80, mutation_rate=0.05, *args, **kwargs
+    ):
         self.sigma_init = sigma_init
         self.population_size = population_size
         self.mutation_rate = mutation_rate
@@ -142,13 +148,17 @@ class NGA(EvolutionaryStrategies):
                 # Mutate weights and biases by adding values from random distributions
                 sigma_eff = self.sigma * (self.n_generations ** (-np.random.rand()))
                 if change_both_wb:
-                    randn_mutation = sigma_eff * np.random.randn(self.shape[layer - 1][0])
+                    randn_mutation = sigma_eff * np.random.randn(
+                        self.shape[layer - 1][0]
+                    )
                     mutant[layer - 1][:, node_in_layer] += randn_mutation
                     mutant[layer][node_in_layer] += sigma_eff * np.random.randn()
                 else:
                     change_weight = np.random.randint(2, dtype="bool")
                     if change_weight:
-                        randn_mutation = sigma_eff * np.random.randn(self.shape[layer - 1][0])
+                        randn_mutation = sigma_eff * np.random.randn(
+                            self.shape[layer - 1][0]
+                        )
                         mutant[layer - 1][:, node_in_layer] += randn_mutation
                     else:
                         mutant[layer][node_in_layer] += sigma_eff * np.random.randn()
@@ -236,9 +246,9 @@ class CMA(EvolutionaryStrategies):
         **kwargs
     ):
         """
-        As one might have noticed, 'CMA' does not allow the user to set a number of epochs, as this
-        is dealth with by 'cma'. The default 'epochs' in EvolModel is one, meaning 'run step' is
-        only called once during training.
+        `CMA` does not allow the user to set a number of generations (epochs),
+        as this is dealth with by the `cma` package.
+        The default `epochs` in EvolModel is 1, meaning `run step` called once during training.
         """
         self.sigma_init = sigma_init
         self.shape = None
@@ -270,7 +280,9 @@ class CMA(EvolutionaryStrategies):
 
     def get_shape(self):
         # we do all this to keep track of the position of the trainable weights
-        self.trainable_weights_names = [weights.name for weights in self.model.trainable_weights]
+        self.trainable_weights_names = [
+            weights.name for weights in self.model.trainable_weights
+        ]
 
         if self.trainable_weights_names == []:
             raise TypeError("The model does not have any trainable weights!")
@@ -287,7 +299,8 @@ class CMA(EvolutionaryStrategies):
         # The first values of 'self.length_flat_layer' is set to 0 which is helpful in determining
         # the range of weights in the function 'undo_flatten'.
         self.length_flat_layer = [
-            len(np.reshape(weight.numpy(), [-1])) for weight in self.model.trainable_weights
+            len(np.reshape(weight.numpy(), [-1]))
+            for weight in self.model.trainable_weights
         ]
         self.length_flat_layer.insert(0, 0)
 
@@ -322,7 +335,9 @@ class CMA(EvolutionaryStrategies):
             ]
             new_weights.append(np.reshape(flat_layer, layer_shape))
 
-        ordered_names = [weight.name for layer in self.model.layers for weight in layer.weights]
+        ordered_names = [
+            weight.name for layer in self.model.layers for weight in layer.weights
+        ]
 
         new_parent = deepcopy(self.model.get_weights())
         for i, weight in enumerate(self.trainable_weights_names):

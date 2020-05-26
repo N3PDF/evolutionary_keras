@@ -3,6 +3,7 @@
 """
 from keras import backend as K
 
+
 def get_number_nodes(layer):
     """ Given a keras layer, outputs the number of nodes """
     nodes = 0
