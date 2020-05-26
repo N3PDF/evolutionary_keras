@@ -16,8 +16,8 @@ class EvolutionaryStrategies(Optimizer):
     """ Parent class for all Evolutionary Strategies
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
         self.model = None
         self.shape = []
         self.non_training_weights = []
@@ -77,11 +77,10 @@ class NGA(EvolutionaryStrategies):
     # population_size or mutation_rate parameters the NGA method has to be initiated
     def __init__(
         self,
-        *args,
+        name="NGA",
         sigma_init=15,
         population_size=80,
         mutation_rate=0.05,
-        name="NGA",
         **kwargs
     ):
         self.sigma_init = sigma_init
@@ -257,13 +256,12 @@ class CMA(EvolutionaryStrategies):
 
     def __init__(
         self,
-        *args,
+        name="CMA",
         sigma_init=0.3,
         target_value=None,
         population_size=None,
         max_evaluations=None,
         verbosity=1,
-        name="CMA",
         **kwargs
     ):
         """
