@@ -9,8 +9,7 @@ import cma
 import numpy as np
 from tensorflow.keras.optimizers import Optimizer
 
-from evolutionary_keras.utilities import (compatibility_numpy,
-                                          get_number_nodes)
+from evolutionary_keras.utilities import compatibility_numpy, get_number_nodes
 
 
 class EvolutionaryStrategies(Optimizer):
@@ -71,7 +70,13 @@ class NGA(EvolutionaryStrategies):
     # In case the user wants to adjust sigma_init
     # population_size or mutation_rate parameters the NGA method has to be initiated
     def __init__(
-        self, sigma_init=15, population_size=80, mutation_rate=0.05, name="NGA", *args, **kwargs
+        self,
+        sigma_init=15,
+        population_size=80,
+        mutation_rate=0.05,
+        name="NGA",
+        *args,
+        **kwargs
     ):
         self.sigma_init = sigma_init
         self.population_size = population_size
@@ -188,7 +193,7 @@ class NGA(EvolutionaryStrategies):
             `best_mutant`: best performing mutant
         """
         best_loss = self.model.evaluate(x=x, y=y, verbose=verbose, return_dict=True)
-        training_metric = next(iter(best_loss))  
+        training_metric = next(iter(best_loss))
         best_loss_val = best_loss[training_metric]
         best_mutant = mutants[0]
         new_mutant = False
@@ -377,7 +382,7 @@ class CMA(EvolutionaryStrategies):
         # If max_evaluations is not set manually, use the number advised in arXiv:1604.00772
         if self.max_evaluations is None:
             self.options["maxfevals"] = 1e3 * len(x0) ** 2
-        else: 
+        else:
             self.options["maxfevals"] = self.max_evaluations
 
         # minimizethis is function that 'cma' aims to minimize
@@ -385,7 +390,7 @@ class CMA(EvolutionaryStrategies):
             weights = self.undo_flatten(flattened_weights)
             self.model.set_weights(weights)
             loss = self.model.evaluate(x=x, y=y, verbose=0, return_dict=True)
-            training_metric = next(iter(loss))  
+            training_metric = next(iter(loss))
             return loss[training_metric]
 
         # Run the minimization and return the ultimatly selected 1 dimensional layer of weights

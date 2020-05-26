@@ -1,6 +1,7 @@
 """ Tests for checking that we can compile and run with all the included optimizers """
 
 import os
+
 # ensure the tests run on CPU
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 import numpy as np
@@ -19,6 +20,7 @@ def generate_model(ishape=2, hshape=4, oshape=1):
     modelito = EvolModel(input_layer, output_layer(hidden_layer(input_layer)))
     return modelito
 
+
 def test_NGA():
     """ Tests whether the NGA is able to run fit """
     optimizer = NGA(mutation_rate=1.0, population_size=10)
@@ -32,6 +34,7 @@ def test_NGA():
     _ = modelito.fit(x=xin, y=yout, epochs=10)
     final_loss = modelito.evaluate(x=xin, y=yout)
     assert final_loss < start_loss
+
 
 def test_CMA():
     """ Tests whether the CMA is able to run fit """

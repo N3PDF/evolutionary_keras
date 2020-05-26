@@ -89,7 +89,7 @@ class EvolModel(Model):
             # Generate the best mutant
             score, best_mutant = self.opt_instance.run_step(x=x, y=y)
 
-            training_metric = next(iter(score))  
+            training_metric = next(iter(score))
 
             # Ensure the best mutant is the current one
             self.set_weights(best_mutant)
@@ -101,7 +101,7 @@ class EvolModel(Model):
             # Fill keras history
             history_data = score
             self.history_info.on_epoch_end(epoch, history_data)
-       
+
         return self.history_info
 
     def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, **kwargs):
