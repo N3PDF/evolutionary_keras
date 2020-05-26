@@ -47,7 +47,13 @@ class EvolutionaryStrategies(Optimizer):
 
     def get_updates(self, loss, params):
         """ Capture Keras get_updates method """
-        pass
+
+    def _resource_apply_dense(self):
+        """ Override """
+
+    def _resource_apply_sparse(self):
+        """ Override """
+
 
 
 class NGA(EvolutionaryStrategies):
@@ -71,11 +77,11 @@ class NGA(EvolutionaryStrategies):
     # population_size or mutation_rate parameters the NGA method has to be initiated
     def __init__(
         self,
+        *args,
         sigma_init=15,
         population_size=80,
         mutation_rate=0.05,
         name="NGA",
-        *args,
         **kwargs
     ):
         self.sigma_init = sigma_init
@@ -251,13 +257,13 @@ class CMA(EvolutionaryStrategies):
 
     def __init__(
         self,
+        *args,
         sigma_init=0.3,
         target_value=None,
         population_size=None,
         max_evaluations=None,
         verbosity=1,
         name="CMA",
-        *args,
         **kwargs
     ):
         """

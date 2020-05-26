@@ -18,6 +18,7 @@ def get_number_nodes(layer):
 
 
 def compatibility_numpy(weight):
+    """ Wrapper in case the evaluated keras object doesn't have a numpy() method """
     try:
         result = weight.numpy()
     except NotImplementedError:
