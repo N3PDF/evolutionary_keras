@@ -4,6 +4,7 @@ import logging
 
 from tensorflow.keras.callbacks import History
 from tensorflow.keras.models import Model
+from tensorflow.python.keras import callbacks as callbacks_module
 
 import evolutionary_keras.optimizers as Evolutionary_Optimizers
 
@@ -57,7 +58,7 @@ class EvolModel(Model):
             super().compile(optimizer=optimizer, **kwargs)
 
     def perform_genetic_fit(
-        self, x=None, y=None, epochs=1, verbose=0, validation_data=None
+        self, x=None, y=None, epochs=1, verbose=0, validation_data=None, callbacks=None
     ):
         """ 
         Parameters
@@ -85,6 +86,7 @@ class EvolModel(Model):
                 "The optimizer determines the number of generations, epochs will be ignored."
             )
 
+        epoch_logs = {}
         for epoch in range(epochs):
             # Generate the best mutant
             score, best_mutant = self.opt_instance.run_step(x=x, y=y)
@@ -98,23 +100,59 @@ class EvolModel(Model):
                 information = f" > epoch: {epoch+1}/{epochs}, {loss} "
                 log.info(information)
 
+            epoch_logs.update(score)
+            callbacks.on_epoch_end(epoch=epoch, logs=epoch_logs)
+
             # Fill keras history
             history_data = score
             self.history_info.on_epoch_end(epoch, history_data)
 
+        callbacks.on_train_end(logs=epoch_logs)
+
         return self.history_info
 
-    def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, **kwargs):
+    def genetic_fit(
+        self,
+        x=None,
+        y=None,
+        validation_data=None,
+        epochs=1,
+        verbose=0,
+        callbacks=None,
+    ):
+        if not isinstance(callbacks, callbacks_module.CallbackList):
+            callbacks = callbacks_module.CallbackList(
+                callbacks,
+                add_history=True,
+                add_progbar=False,
+                model=self,
+                verbose=verbose,
+                epochs=epochs,
+            )
+        callbacks.on_train_begin()
+
+        result = self.perform_genetic_fit(
+            x=x,
+            y=y,
+            epochs=epochs,
+            verbose=verbose,
+            validation_data=validation_data,
+            callbacks=callbacks,
+        )
+        return result
+
+    def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, callbacks=None, **kwargs):
         """ If the optimizer is genetic, the fitting procedure consists on executing `run_step` for
         the given number of epochs.
         """
         if self.is_genetic:
-            result = self.perform_genetic_fit(
+            result = self.genetic_fit(
                 x=x,
                 y=y,
+                validation_data=validation_data,
                 epochs=epochs,
                 verbose=verbose,
-                validation_data=validation_data,
+                callbacks=callbacks,
             )
         else:
             result = super().fit(
@@ -123,6 +161,6 @@ class EvolModel(Model):
                 validation_data=validation_data,
                 epochs=epochs,
                 verbose=verbose,
-                # **kwargs,
+                **kwargs,
             )
         return result
