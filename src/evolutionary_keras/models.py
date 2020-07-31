@@ -112,13 +112,7 @@ class EvolModel(Model):
         return self.history_info
 
     def genetic_fit(
-        self,
-        x=None,
-        y=None,
-        validation_data=None,
-        epochs=1,
-        verbose=0,
-        callbacks=None,
+        self, x=None, y=None, validation_data=None, epochs=1, verbose=0, callbacks=None,
     ):
         if not isinstance(callbacks, callbacks_module.CallbackList):
             callbacks = callbacks_module.CallbackList(
@@ -141,7 +135,16 @@ class EvolModel(Model):
         )
         return result
 
-    def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, callbacks=None, **kwargs):
+    def fit(
+        self,
+        x=None,
+        y=None,
+        validation_data=None,
+        epochs=1,
+        verbose=0,
+        callbacks=None,
+        **kwargs,
+    ):
         """ If the optimizer is genetic, the fitting procedure consists on executing `run_step` for
         the given number of epochs.
         """
@@ -161,6 +164,7 @@ class EvolModel(Model):
                 validation_data=validation_data,
                 epochs=epochs,
                 verbose=verbose,
+                callbacks=callbacks,
                 **kwargs,
             )
         return result
