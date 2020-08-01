@@ -10,7 +10,7 @@ import numpy as np
 from tensorflow.keras.optimizers import Optimizer
 
 from evolutionary_keras.utilities import compatibility_numpy, get_number_nodes
-
+# from evolutionary_keras.utilities import get_number_nodes
 
 class EvolutionaryStrategies(Optimizer):
     """ Parent class for all Evolutionary Strategies
@@ -122,8 +122,9 @@ class NGA(EvolutionaryStrategies):
         # TODO: eventually we should save here a reference to the layer and their
         # corresponding weights, since the nodes are the output of the layer
         # and the weights the corresponding to that layer
-        for layer in self.model.layers:
-            self.n_nodes += get_number_nodes(layer)
+        for layer in range(1, len(weight_shapes), 2):
+            self.n_nodes += weight_shapes[layer][0]
+
         # TODO related to previous TODO: non trianable weights should not be important
         self.non_training_weights = self.model.non_trainable_weights
         return weight_shapes
