@@ -10,7 +10,7 @@ import numpy as np
 from tensorflow.keras.optimizers import Optimizer
 
 from evolutionary_keras.utilities import compatibility_numpy, get_number_nodes
-# from evolutionary_keras.utilities import get_number_nodes
+
 
 class EvolutionaryStrategies(Optimizer):
     """ Parent class for all Evolutionary Strategies
@@ -20,7 +20,6 @@ class EvolutionaryStrategies(Optimizer):
         super().__init__(name, **kwargs)
         self.model = None
         self.shape = []
-        self.non_training_weights = []
 
     @abstractmethod
     def get_shape(self):
@@ -53,7 +52,6 @@ class EvolutionaryStrategies(Optimizer):
 
     def _resource_apply_sparse(self):
         """ Override """
-
 
 
 class NGA(EvolutionaryStrategies):
@@ -114,19 +112,10 @@ class NGA(EvolutionaryStrategies):
         -------
             `weight_shapes`: a list of the shapes of all trainable weights
         """
-        # Initialize number of nodes
-        self.n_nodes = 0
         # Get trainable weight from the model and their shapes
         trainable_weights = self.model.trainable_weights
         weight_shapes = [weight.shape.as_list() for weight in trainable_weights]
-        # TODO: eventually we should save here a reference to the layer and their
-        # corresponding weights, since the nodes are the output of the layer
-        # and the weights the corresponding to that layer
-        for layer in range(1, len(weight_shapes), 2):
-            self.n_nodes += weight_shapes[layer][0]
-
-        # TODO related to previous TODO: non trianable weights should not be important
-        self.non_training_weights = self.model.non_trainable_weights
+        self.n_nodes += get_number_nodes(self.model)
         return weight_shapes
 
     def create_mutants(self, change_both_wb=True):
@@ -136,7 +125,6 @@ class NGA(EvolutionaryStrategies):
         By default, from a layer dense layer, only weights or biases will be mutated.
         In order to mutate both set `change_both_wb` to True
         """
-        # TODO here we should get only trainable weights
         parent_mutant = self.model.get_weights()
         # Find out how many nodes are we mutating
         nodes_to_mutate = int(self.n_nodes * self.mutation_rate)
@@ -155,8 +143,6 @@ class NGA(EvolutionaryStrategies):
                 # Find the nodes in their respective layers
                 count_nodes = 0
                 layer = 1
-                # TODO HERE WEIGHT-BIAS-WEIGHT-BIAS IS ALSO ASSUMED BY THE +=2
-                # Once again, this is related to the previous TODO
                 while count_nodes <= i:
                     count_nodes += self.shape[layer][0]
                     layer += 2
@@ -205,8 +191,6 @@ class NGA(EvolutionaryStrategies):
         new_mutant = False
         for mutant in mutants[1:]:
             # replace weights of the input model by weights generated
-            # TODO related to the other todos, eventually this will have to be done
-            # in a per-layer basis
             self.model.set_weights(mutant)
             loss = self.model.evaluate(x=x, y=y, verbose=False, return_dict=True)
             loss_val = loss[training_metric]

@@ -74,6 +74,7 @@ class EvolModel(Model):
         """
         # Prepare the history for the initial epoch
         self.history_info.on_train_begin()
+        callbacks.on_train_begin()
         # Validation data is currently not being used!!
         if validation_data is not None:
             log.warning(
@@ -88,6 +89,8 @@ class EvolModel(Model):
 
         epoch_logs = {}
         for epoch in range(epochs):
+            callbacks.on_epoch_begin(epoch=epoch)
+
             # Generate the best mutant
             score, best_mutant = self.opt_instance.run_step(x=x, y=y)
 

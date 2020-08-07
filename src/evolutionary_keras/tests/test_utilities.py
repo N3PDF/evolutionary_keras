@@ -1,9 +1,9 @@
-""" Test the utilities of evolutionary_keras """
+# """ Test the utilities of evolutionary_keras """
 
-from tensorflow.keras.layers import Dense, Input
+# from tensorflow.keras.layers import Dense, Input
 
-from evolutionary_keras.utilities import get_number_nodes
-from evolutionary_keras.models import EvolModel
+# from evolutionary_keras.utilities import get_number_nodes
+# from evolutionary_keras.models import EvolModel
 
 
 # def test_get_number_nodes():
