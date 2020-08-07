@@ -73,14 +73,7 @@ class NGA(EvolutionaryStrategies):
 
     # In case the user wants to adjust sigma_init
     # population_size or mutation_rate parameters the NGA method has to be initiated
-    def __init__(
-        self,
-        name="NGA",
-        sigma_init=15,
-        population_size=80,
-        mutation_rate=0.05,
-        **kwargs
-    ):
+    def __init__(self, name="NGA", sigma_init=15, population_size=80, mutation_rate=0.05, **kwargs):
         self.sigma_init = sigma_init
         self.population_size = population_size
         self.mutation_rate = mutation_rate
@@ -115,7 +108,7 @@ class NGA(EvolutionaryStrategies):
         # Get trainable weight from the model and their shapes
         trainable_weights = self.model.trainable_weights
         weight_shapes = [weight.shape.as_list() for weight in trainable_weights]
-        self.n_nodes += get_number_nodes(self.model)
+        self.n_nodes = get_number_nodes(self.model)
         return weight_shapes
 
     def create_mutants(self, change_both_wb=True):
@@ -153,17 +146,13 @@ class NGA(EvolutionaryStrategies):
                 # Mutate weights and biases by adding values from random distributions
                 sigma_eff = self.sigma * (self.n_generations ** (-np.random.rand()))
                 if change_both_wb:
-                    randn_mutation = sigma_eff * np.random.randn(
-                        self.shape[layer - 1][0]
-                    )
+                    randn_mutation = sigma_eff * np.random.randn(self.shape[layer - 1][0])
                     mutant[layer - 1][:, node_in_layer] += randn_mutation
                     mutant[layer][node_in_layer] += sigma_eff * np.random.randn()
                 else:
                     change_weight = np.random.randint(2, dtype="bool")
                     if change_weight:
-                        randn_mutation = sigma_eff * np.random.randn(
-                            self.shape[layer - 1][0]
-                        )
+                        randn_mutation = sigma_eff * np.random.randn(self.shape[layer - 1][0])
                         mutant[layer - 1][:, node_in_layer] += randn_mutation
                     else:
                         mutant[layer][node_in_layer] += sigma_eff * np.random.randn()
@@ -295,9 +284,7 @@ class CMA(EvolutionaryStrategies):
 
     def get_shape(self):
         # we do all this to keep track of the position of the trainable weights
-        self.trainable_weights_names = [
-            weights.name for weights in self.model.trainable_weights
-        ]
+        self.trainable_weights_names = [weights.name for weights in self.model.trainable_weights]
 
         if self.trainable_weights_names == []:
             raise TypeError("The model does not have any trainable weights!")
@@ -314,8 +301,7 @@ class CMA(EvolutionaryStrategies):
         # The first values of 'self.length_flat_layer' is set to 0 which is helpful in determining
         # the range of weights in the function 'undo_flatten'.
         self.length_flat_layer = [
-            len(np.reshape(weight.numpy(), [-1]))
-            for weight in self.model.trainable_weights
+            len(np.reshape(weight.numpy(), [-1])) for weight in self.model.trainable_weights
         ]
         self.length_flat_layer.insert(0, 0)
 
@@ -350,9 +336,7 @@ class CMA(EvolutionaryStrategies):
             ]
             new_weights.append(np.reshape(flat_layer, layer_shape))
 
-        ordered_names = [
-            weight.name for layer in self.model.layers for weight in layer.weights
-        ]
+        ordered_names = [weight.name for layer in self.model.layers for weight in layer.weights]
 
         new_parent = deepcopy(self.model.get_weights())
         for i, weight in enumerate(self.trainable_weights_names):

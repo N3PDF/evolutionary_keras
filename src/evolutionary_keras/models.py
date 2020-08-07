@@ -77,9 +77,7 @@ class EvolModel(Model):
         callbacks.on_train_begin()
         # Validation data is currently not being used!!
         if validation_data is not None:
-            log.warning(
-                "Validation data is not used at the moment by the Genetic Algorithms!!"
-            )
+            log.warning("Validation data is not used at the moment by the Genetic Algorithms!!")
 
         if isinstance(self.opt_instance, Evolutionary_Optimizers.CMA) and epochs != 1:
             epochs = 1
@@ -139,14 +137,7 @@ class EvolModel(Model):
         return result
 
     def fit(
-        self,
-        x=None,
-        y=None,
-        validation_data=None,
-        epochs=1,
-        verbose=0,
-        callbacks=None,
-        **kwargs,
+        self, x=None, y=None, validation_data=None, epochs=1, verbose=0, callbacks=None, **kwargs,
     ):
         """ If the optimizer is genetic, the fitting procedure consists on executing `run_step` for
         the given number of epochs.
