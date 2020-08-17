@@ -85,7 +85,6 @@ class EvolModel(Model):
                 "The optimizer determines the number of generations, epochs will be ignored."
             )
 
-        epoch_logs = {}
         for epoch in range(epochs):
             callbacks.on_epoch_begin(epoch=epoch)
 
@@ -101,14 +100,13 @@ class EvolModel(Model):
                 information = f" > epoch: {epoch+1}/{epochs}, {loss} "
                 log.info(information)
 
-            epoch_logs.update(score)
-            callbacks.on_epoch_end(epoch=epoch, logs=epoch_logs)
+            callbacks.on_epoch_end(epoch=epoch, logs=score)
 
             # Fill keras history
             history_data = score
             self.history_info.on_epoch_end(epoch, history_data)
 
-        callbacks.on_train_end(logs=epoch_logs)
+        callbacks.on_train_end(logs=score)
 
         return self.history_info
 
