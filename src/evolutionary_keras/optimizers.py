@@ -125,7 +125,7 @@ class NGA(EvolutionaryStrategies):
             NNshape = "incompatible"
         if NNshape == "incompatible":
             raise ValueError(
-                "Using the NGA optimizer requires the network to have a $(weight-bias)^n$ structure, with 1-dimensional bias"
+                "Using the NGA optimizer requires the network to have a (weight-bias)^n structure, with 1-dimensional bias"
             )
 
         return weight_shapes
