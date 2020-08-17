@@ -112,29 +112,6 @@ class EvolModel(Model):
 
         return self.history_info
 
-    def genetic_fit(
-        self, x=None, y=None, validation_data=None, epochs=1, verbose=0, callbacks=None,
-    ):
-        if not isinstance(callbacks, callbacks_module.CallbackList):
-            callbacks = callbacks_module.CallbackList(
-                callbacks,
-                add_history=True,
-                add_progbar=False,
-                model=self,
-                verbose=verbose,
-                epochs=epochs,
-            )
-        callbacks.on_train_begin()
-
-        result = self.perform_genetic_fit(
-            x=x,
-            y=y,
-            epochs=epochs,
-            verbose=verbose,
-            validation_data=validation_data,
-            callbacks=callbacks,
-        )
-        return result
 
     def fit(
         self, x=None, y=None, validation_data=None, epochs=1, verbose=0, callbacks=None, **kwargs,
@@ -143,14 +120,27 @@ class EvolModel(Model):
         the given number of epochs.
         """
         if self.is_genetic:
-            result = self.genetic_fit(
+            # Container that configures and calls `tf.keras.Callback`s.
+            if not isinstance(callbacks, callbacks_module.CallbackList):
+                callbacks = callbacks_module.CallbackList(
+                    callbacks,
+                    add_history=True,
+                    add_progbar=False,
+                    model=self,
+                    verbose=verbose,
+                    epochs=epochs,
+                )
+            callbacks.on_train_begin()
+
+            result = self.perform_genetic_fit(
                 x=x,
                 y=y,
-                validation_data=validation_data,
                 epochs=epochs,
                 verbose=verbose,
+                validation_data=validation_data,
                 callbacks=callbacks,
             )
+
         else:
             result = super().fit(
                 x=x,

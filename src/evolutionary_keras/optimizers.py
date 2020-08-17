@@ -108,26 +108,31 @@ class NGA(EvolutionaryStrategies):
         # Get trainable weight from the model and their shapes
         trainable_weights = self.model.trainable_weights
         weight_shapes = [weight.shape.as_list() for weight in trainable_weights]
+        weights = [weight for weight in trainable_weights]
         self.n_nodes = get_number_nodes(self.model)
 
         # check compatibility of the shape with the NGA optimizer
         NNshape = None
         count_nodes = 0
-        for num, layer_shape in enumerate(weight_shapes):
+        for num, layer in enumerate(weights):
+            layer_shape = layer.shape.as_list()
             num += 1
             if num % 2 == 0:
                 count_nodes += np.array(layer_shape)
                 if np.array(layer_shape).size != 1:
-                    NNshape = "incompatible"
+                    raise ValueError(
+                        f"The NGA optimizer expects a (weight-bias)\N{SUPERSCRIPT LATIN SMALL LETTER N} architecture, {layer.name} does not satisfy this condition"
+                    )
             else:
                 if np.array(layer_shape).size != 2:
-                    NNshape = "incompatible"
+                    raise ValueError(
+                        f"The NGA optimizer expects a (weight-bias)\N{SUPERSCRIPT LATIN SMALL LETTER N} architecture, {layer.name} does not satisfy this condition"
+                    )
         if count_nodes != self.n_nodes:
-            NNshape = "incompatible"
-        if NNshape == "incompatible":
             raise ValueError(
-                "Using the NGA optimizer requires the network to have a (weight-bias)^n structure, with 1-dimensional bias"
+                "The number of nodes with a bias attribute differs from the number of trainable nodes found based on the architecture of the trainable weights."
             )
+
         return weight_shapes
 
     def create_mutants(self, change_both_wb=True):
@@ -255,7 +260,7 @@ class CMA(EvolutionaryStrategies):
         population_size=None,
         max_evaluations=None,
         verbosity=1,
-        **kwargs
+        **kwargs,
     ):
         """
         `CMA` does not allow the user to set a number of generations (epochs),
