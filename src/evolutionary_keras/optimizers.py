@@ -109,6 +109,25 @@ class NGA(EvolutionaryStrategies):
         trainable_weights = self.model.trainable_weights
         weight_shapes = [weight.shape.as_list() for weight in trainable_weights]
         self.n_nodes = get_number_nodes(self.model)
+
+        # check compatibility of the shape with the NGA optimizer
+        for num, layer_shape in enumerate(weight_shapes):
+            count_nodes = 0
+            num += 1
+            if num % 1 == 0:
+                if np.array(layer_shape).size != 2:
+                    NNshape = "incompatible"
+            if num % 2 == 0:
+                count_nodes += np.array(layer_shape).size
+                if np.array(layer_shape).size != 1:
+                    NNshape = "incompatible"
+        if count_nodes != self.n_nodes:
+            NNshape = "incompatible"
+        if NNshape == "incompatible":
+            raise ValueError(
+                "Using the NGA optimizer requires the network to have a $(weight-bias)^n$ structure, with 1-dimensional bias"
+            )
+
         return weight_shapes
 
     def create_mutants(self, change_both_wb=True):
