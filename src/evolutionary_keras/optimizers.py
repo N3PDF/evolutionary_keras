@@ -112,7 +112,6 @@ class NGA(EvolutionaryStrategies):
         self.n_nodes = get_number_nodes(self.model)
 
         # check compatibility of the shape with the NGA optimizer
-        NNshape = None
         count_nodes = 0
         for num, layer in enumerate(weights):
             layer_shape = layer.shape.as_list()
