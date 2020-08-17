@@ -20,7 +20,6 @@ class EvolutionaryStrategies(Optimizer):
         super().__init__(name, **kwargs)
         self.model = None
         self.shape = []
-        self.non_training_weights = []
 
     @abstractmethod
     def get_shape(self):
@@ -55,7 +54,6 @@ class EvolutionaryStrategies(Optimizer):
         """ Override """
 
 
-
 class NGA(EvolutionaryStrategies):
     """
     The Nodal Genetic Algorithm (NGA) is similar to the regular GA, but this time a number
@@ -75,14 +73,7 @@ class NGA(EvolutionaryStrategies):
 
     # In case the user wants to adjust sigma_init
     # population_size or mutation_rate parameters the NGA method has to be initiated
-    def __init__(
-        self,
-        name="NGA",
-        sigma_init=15,
-        population_size=80,
-        mutation_rate=0.05,
-        **kwargs
-    ):
+    def __init__(self, name="NGA", sigma_init=15, population_size=80, mutation_rate=0.05, **kwargs):
         self.sigma_init = sigma_init
         self.population_size = population_size
         self.mutation_rate = mutation_rate
@@ -114,18 +105,33 @@ class NGA(EvolutionaryStrategies):
         -------
             `weight_shapes`: a list of the shapes of all trainable weights
         """
-        # Initialize number of nodes
-        self.n_nodes = 0
         # Get trainable weight from the model and their shapes
         trainable_weights = self.model.trainable_weights
         weight_shapes = [weight.shape.as_list() for weight in trainable_weights]
-        # TODO: eventually we should save here a reference to the layer and their
-        # corresponding weights, since the nodes are the output of the layer
-        # and the weights the corresponding to that layer
-        for layer in self.model.layers:
-            self.n_nodes += get_number_nodes(layer)
-        # TODO related to previous TODO: non trianable weights should not be important
-        self.non_training_weights = self.model.non_trainable_weights
+        weights = [weight for weight in trainable_weights]
+        self.n_nodes = get_number_nodes(self.model)
+
+        # check compatibility of the shape with the NGA optimizer
+        count_nodes = 0
+        for num, layer in enumerate(weights):
+            layer_shape = layer.shape.as_list()
+            num += 1
+            if num % 2 == 0:
+                count_nodes += np.array(layer_shape)
+                if np.array(layer_shape).size != 1:
+                    raise ValueError(
+                        f"The NGA optimizer expects a (weight-bias)\N{SUPERSCRIPT LATIN SMALL LETTER N} architecture, {layer.name} does not satisfy this condition"
+                    )
+            else:
+                if np.array(layer_shape).size != 2:
+                    raise ValueError(
+                        f"The NGA optimizer expects a (weight-bias)\N{SUPERSCRIPT LATIN SMALL LETTER N} architecture, {layer.name} does not satisfy this condition"
+                    )
+        if count_nodes != self.n_nodes:
+            raise ValueError(
+                "The number of nodes with a bias attribute differs from the number of trainable nodes found based on the architecture of the trainable weights."
+            )
+
         return weight_shapes
 
     def create_mutants(self, change_both_wb=True):
@@ -135,7 +141,6 @@ class NGA(EvolutionaryStrategies):
         By default, from a layer dense layer, only weights or biases will be mutated.
         In order to mutate both set `change_both_wb` to True
         """
-        # TODO here we should get only trainable weights
         parent_mutant = self.model.get_weights()
         # Find out how many nodes are we mutating
         nodes_to_mutate = int(self.n_nodes * self.mutation_rate)
@@ -154,8 +159,6 @@ class NGA(EvolutionaryStrategies):
                 # Find the nodes in their respective layers
                 count_nodes = 0
                 layer = 1
-                # TODO HERE WEIGHT-BIAS-WEIGHT-BIAS IS ALSO ASSUMED BY THE +=2
-                # Once again, this is related to the previous TODO
                 while count_nodes <= i:
                     count_nodes += self.shape[layer][0]
                     layer += 2
@@ -166,17 +169,13 @@ class NGA(EvolutionaryStrategies):
                 # Mutate weights and biases by adding values from random distributions
                 sigma_eff = self.sigma * (self.n_generations ** (-np.random.rand()))
                 if change_both_wb:
-                    randn_mutation = sigma_eff * np.random.randn(
-                        self.shape[layer - 1][0]
-                    )
+                    randn_mutation = sigma_eff * np.random.randn(self.shape[layer - 1][0])
                     mutant[layer - 1][:, node_in_layer] += randn_mutation
                     mutant[layer][node_in_layer] += sigma_eff * np.random.randn()
                 else:
                     change_weight = np.random.randint(2, dtype="bool")
                     if change_weight:
-                        randn_mutation = sigma_eff * np.random.randn(
-                            self.shape[layer - 1][0]
-                        )
+                        randn_mutation = sigma_eff * np.random.randn(self.shape[layer - 1][0])
                         mutant[layer - 1][:, node_in_layer] += randn_mutation
                     else:
                         mutant[layer][node_in_layer] += sigma_eff * np.random.randn()
@@ -204,8 +203,6 @@ class NGA(EvolutionaryStrategies):
         new_mutant = False
         for mutant in mutants[1:]:
             # replace weights of the input model by weights generated
-            # TODO related to the other todos, eventually this will have to be done
-            # in a per-layer basis
             self.model.set_weights(mutant)
             loss = self.model.evaluate(x=x, y=y, verbose=False, return_dict=True)
             loss_val = loss[training_metric]
@@ -262,7 +259,7 @@ class CMA(EvolutionaryStrategies):
         population_size=None,
         max_evaluations=None,
         verbosity=1,
-        **kwargs
+        **kwargs,
     ):
         """
         `CMA` does not allow the user to set a number of generations (epochs),
@@ -310,9 +307,7 @@ class CMA(EvolutionaryStrategies):
 
     def get_shape(self):
         # we do all this to keep track of the position of the trainable weights
-        self.trainable_weights_names = [
-            weights.name for weights in self.model.trainable_weights
-        ]
+        self.trainable_weights_names = [weights.name for weights in self.model.trainable_weights]
 
         if self.trainable_weights_names == []:
             raise TypeError("The model does not have any trainable weights!")
@@ -329,8 +324,7 @@ class CMA(EvolutionaryStrategies):
         # The first values of 'self.length_flat_layer' is set to 0 which is helpful in determining
         # the range of weights in the function 'undo_flatten'.
         self.length_flat_layer = [
-            len(np.reshape(weight.numpy(), [-1]))
-            for weight in self.model.trainable_weights
+            len(np.reshape(weight.numpy(), [-1])) for weight in self.model.trainable_weights
         ]
         self.length_flat_layer.insert(0, 0)
 
@@ -365,9 +359,7 @@ class CMA(EvolutionaryStrategies):
             ]
             new_weights.append(np.reshape(flat_layer, layer_shape))
 
-        ordered_names = [
-            weight.name for layer in self.model.layers for weight in layer.weights
-        ]
+        ordered_names = [weight.name for layer in self.model.layers for weight in layer.weights]
 
         new_parent = deepcopy(self.model.get_weights())
         for i, weight in enumerate(self.trainable_weights_names):

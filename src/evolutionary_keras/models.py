@@ -4,6 +4,7 @@ import logging
 
 from tensorflow.keras.callbacks import History
 from tensorflow.keras.models import Model
+from tensorflow.python.keras import callbacks as callbacks_module
 
 import evolutionary_keras.optimizers as Evolutionary_Optimizers
 
@@ -57,7 +58,7 @@ class EvolModel(Model):
             super().compile(optimizer=optimizer, **kwargs)
 
     def perform_genetic_fit(
-        self, x=None, y=None, epochs=1, verbose=0, validation_data=None
+        self, x=None, y=None, epochs=1, verbose=0, validation_data=None, callbacks=None
     ):
         """ 
         Parameters
@@ -73,11 +74,10 @@ class EvolModel(Model):
         """
         # Prepare the history for the initial epoch
         self.history_info.on_train_begin()
+        callbacks.on_train_begin()
         # Validation data is currently not being used!!
         if validation_data is not None:
-            log.warning(
-                "Validation data is not used at the moment by the Genetic Algorithms!!"
-            )
+            log.warning("Validation data is not used at the moment by the Genetic Algorithms!!")
 
         if isinstance(self.opt_instance, Evolutionary_Optimizers.CMA) and epochs != 1:
             epochs = 1
@@ -86,6 +86,8 @@ class EvolModel(Model):
             )
 
         for epoch in range(epochs):
+            callbacks.on_epoch_begin(epoch=epoch)
+
             # Generate the best mutant
             score, best_mutant = self.opt_instance.run_step(x=x, y=y)
 
@@ -98,24 +100,45 @@ class EvolModel(Model):
                 information = f" > epoch: {epoch+1}/{epochs}, {loss} "
                 log.info(information)
 
+            callbacks.on_epoch_end(epoch=epoch, logs=score)
+
             # Fill keras history
             history_data = score
             self.history_info.on_epoch_end(epoch, history_data)
 
+        callbacks.on_train_end(logs=score)
+
         return self.history_info
 
-    def fit(self, x=None, y=None, validation_data=None, epochs=1, verbose=0, **kwargs):
+
+    def fit(
+        self, x=None, y=None, validation_data=None, epochs=1, verbose=0, callbacks=None, **kwargs,
+    ):
         """ If the optimizer is genetic, the fitting procedure consists on executing `run_step` for
         the given number of epochs.
         """
         if self.is_genetic:
+            # Container that configures and calls `tf.keras.Callback`s.
+            if not isinstance(callbacks, callbacks_module.CallbackList):
+                callbacks = callbacks_module.CallbackList(
+                    callbacks,
+                    add_history=True,
+                    add_progbar=False,
+                    model=self,
+                    verbose=verbose,
+                    epochs=epochs,
+                )
+            callbacks.on_train_begin()
+
             result = self.perform_genetic_fit(
                 x=x,
                 y=y,
                 epochs=epochs,
                 verbose=verbose,
                 validation_data=validation_data,
+                callbacks=callbacks,
             )
+
         else:
             result = super().fit(
                 x=x,
@@ -123,6 +146,7 @@ class EvolModel(Model):
                 validation_data=validation_data,
                 epochs=epochs,
                 verbose=verbose,
-                # **kwargs,
+                callbacks=callbacks,
+                **kwargs,
             )
         return result

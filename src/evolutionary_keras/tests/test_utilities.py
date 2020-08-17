@@ -17,4 +17,4 @@ def test_get_number_nodes():
     modelito = EvolModel(input_layer, output_layer(input_layer))
 
     # Check that indeed the number of nodes is parsed correctly
-    assert nodes == get_number_nodes(output_layer)
+    assert nodes == get_number_nodes(modelito)
