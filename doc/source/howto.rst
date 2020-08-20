@@ -10,7 +10,7 @@ As an example, let us consider a project in which we have some neural network co
 
 .. code-block:: python
 
-    from keras.models import Model
+    from tensorflow.keras.models import Model
     my_model = Model(input_layer, output_layer)
 
 Using ``evolutionary_keras`` is as easy as doing:
@@ -20,8 +20,8 @@ Using ``evolutionary_keras`` is as easy as doing:
     from evolutionary_keras.models import EvolModel
     my_model = EvolModel(input_layer, output_layer)
 
-From that point onwards ``my_model`` behaves exactly as a normal Keras model implementing the same methods and attributes as well as allowing the usage of Evolutionary :ref:`optimizers-label`.
-For instance, the example belows utilizes the Nodal Genetic Algorithm (NGA):
+From that point onward ``my_model`` behaves exactly as a normal Keras model implementing the same methods and attributes as well as allowing the usage of Evolutionary :ref:`optimizers-label`.
+For instance, the example below utilizes the Nodal Genetic Algorithm (NGA):
 
 .. code-block:: python
 
@@ -44,4 +44,4 @@ For a more fine-grained usage we can also import the optimizer and instantiate i
   for all optimizers.
   If the model is to be evaluated on GPU this will create a big overhead due to constantly copying the weights to the CPU.
   Only when the evaluation part is big enough that this overhead becomes negligible, evaluating on GPU can be an advantage.
-  To force the ``tensorflow`` backend not to use the GPU you can set the enviromental variable: ``CUDA_VISIBLE_DEVICES=""``   
+  To force the ``tensorflow`` backend not to use the GPU you can set the environment variable: ``CUDA_VISIBLE_DEVICES=""``   
