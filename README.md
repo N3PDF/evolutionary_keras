@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3630399.svg)](https://doi.org/10.5281/zenodo.3630399)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3630339.svg)](https://doi.org/10.5281/zenodo.3630339)
 [![](https://github.com/N3PDF/evolutionary_keras/workflows/pytest/badge.svg)](https://pypi.org/project/evolutionary-keras/)
 [![Documentation Status](https://readthedocs.org/projects/evolutionary-keras/badge/?version=latest)](https://evolutionary-keras.readthedocs.io/en/latest/?badge=latest)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/evolutionary_keras/badges/installer/conda.svg)](https://anaconda.org/conda-forge/evolutionary_keras)
