@@ -3,9 +3,7 @@ import os
 import re
 
 
-requirements = ["numpy", "cma"]
-if os.environ.get("READTHEDOCS") != "True":
-    requirements.append("tensorflow>2.1*")
+requirements = ["numpy", "cma", "tensorflow>2.1*"]
 PACKAGE = "evolutionary_keras"
 
 this_directory = os.path.abspath(os.path.dirname(__file__))
