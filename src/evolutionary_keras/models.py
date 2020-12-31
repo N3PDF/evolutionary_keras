@@ -4,7 +4,7 @@ import logging
 
 from tensorflow.keras.callbacks import History
 from tensorflow.keras.models import Model
-from tensorflow.python.keras import callbacks as callbacks_module
+from tensorflow.keras import callbacks as callbacks_module
 
 import evolutionary_keras.optimizers as Evolutionary_Optimizers
 
