@@ -335,8 +335,7 @@ class CMA(EvolutionaryStrategies):
         # The first values of 'self.length_flat_layer' is set to 0 which is helpful in determining
         # the range of weights in the function 'undo_flatten'.
         flattened_weights = []
-        self.length_flat_layer = []
-        self.length_flat_layer.append(0)
+        self.length_flat_layer = [0]
         for weight in self.model.trainable_weights:
             a = np.reshape(compatibility_numpy(weight), [-1])
             flattened_weights.append(a)
@@ -353,10 +352,9 @@ class CMA(EvolutionaryStrategies):
         """
         new_weights = []
         for i, layer_shape in enumerate(self.shape):
-            flat_layer = flattened_weights[
-                self.length_flat_layer[i] : self.length_flat_layer[i]
-                + self.length_flat_layer[i + 1]
-            ]
+            start_index = sum(self.length_flat_layer[: i + 1])
+            end_index = start_index + self.length_flat_layer[i + 1]
+            flat_layer = flattened_weights[start_index:end_index]
             new_weights.append(np.reshape(flat_layer, layer_shape))
 
         ordered_names = [weight.name for layer in self.model.layers for weight in layer.weights]
